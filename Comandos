@@ -1,0 +1,6 @@
+LLamar servidor: telnet localhost 8080
+
+Abrir Servidor: ./servidor
+
+Compilar codigo del servidor: gcc -o servidor servidor.c
+
