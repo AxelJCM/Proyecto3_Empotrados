@@ -1,0 +1,37 @@
+.house-control {
+  font-family: Arial, sans-serif;
+}
+
+.lights-section, .doors-section, .motion-section, .camera-section {
+  margin-bottom: 20px;
+}
+
+.lights-grid, .doors-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 10px;
+}
+
+.light-card, .door-card {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  text-align: center;
+}
+
+.light-button.on {
+  background-color: #ff0;
+}
+
+.light-button.off {
+  background-color: #ccc;
+}
+
+.door-icon {
+  font-size: 20px;
+}
+
+.camera-section img {
+  max-width: 100%;
+  height: auto;
+}
