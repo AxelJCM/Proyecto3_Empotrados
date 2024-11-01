@@ -1,0 +1,19 @@
+/* src/components/CameraCapture.css */
+.camera-capture {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 20px;
+}
+
+.camera-capture h3 {
+    margin-bottom: 10px;
+}
+
+.camera-capture video {
+    border: 2px solid #ccc; /* Bordes del video */
+    border-radius: 8px; /* Esquinas redondeadas */
+    width: 100%; /* Ajusta el ancho al contenedor */
+    max-width: 500px; /* Ancho máximo */
+    height: auto; /* Mantiene la proporción */
+}
