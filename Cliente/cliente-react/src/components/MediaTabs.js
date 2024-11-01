@@ -1,7 +1,8 @@
+// src/components/MediaTabs.js
 import React from 'react';
-import './Tabs.css';
+import './MediaTabs.css';
 
-function Tabs({ tabs }) {
+function MediaTabs({ tabs }) {
   const [activeTab, setActiveTab] = React.useState(Object.keys(tabs)[0]);
 
   return (
@@ -17,11 +18,10 @@ function Tabs({ tabs }) {
           </div>
         ))}
       </div>
-      <div className="tabs-content">
-        {tabs[activeTab]}
-      </div>
+      <div className="tabs-content">{tabs[activeTab]}</div>
     </div>
   );
 }
 
-export default Tabs;
+export default MediaTabs;
+

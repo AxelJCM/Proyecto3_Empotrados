@@ -1,14 +1,13 @@
+// src/components/AuthLogin.js
 import React, { useState } from 'react';
-import './Login.css';  // Importa el archivo CSS para el diseño
+import './AuthLogin.css';
 
-function Login({ handleLogin }) {
+function AuthLogin({ handleLogin }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    setError('');  // Resetea cualquier error previo
     handleLogin(username, password);
   };
 
@@ -18,7 +17,7 @@ function Login({ handleLogin }) {
         <h2>Login</h2>
         <form onSubmit={handleSubmit}>
           <div className="input-group">
-            <label>Nombre de usuario:</label>
+            <label>Usuario:</label>
             <input
               type="text"
               placeholder="Usuario"
@@ -37,7 +36,6 @@ function Login({ handleLogin }) {
               required
             />
           </div>
-          {error && <p className="error-message">{error}</p>}
           <button type="submit" className="login-button">Iniciar Sesión</button>
         </form>
       </div>
@@ -45,4 +43,5 @@ function Login({ handleLogin }) {
   );
 }
 
-export default Login;
+export default AuthLogin;
+
