@@ -1,32 +1,34 @@
 // src/App.js
 import React, { useState } from 'react';
+import Auth from './components/Auth';
+import MediaTabs from './components/MediaTabs';
 import './App.css';
-import DigitalFrame from './components/DigitalFrame';
-import AuthLogin from './components/AuthLogin';
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [token, setToken] = useState(null);
 
-  const handleLogin = (username, password) => {
-    const token = 'mock_token';
-    localStorage.setItem('token', token);
-    setIsAuthenticated(true);
-  };
+    const handleLogin = (newToken) => {
+        setToken(newToken);
+        console.log("Logged in with token:", newToken);
+    };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    setIsAuthenticated(false);
-  };
+    const handleLogout = () => {
+        setToken(null);
+        console.log("Logged out");
+    };
 
-  return (
-    <div className="App">
-      {isAuthenticated ? (
-        <DigitalFrame onLogout={handleLogout} />
-      ) : (
-        <AuthLogin handleLogin={handleLogin} />
-      )}
-    </div>
-  );
+    return (
+        <div className="App">
+            {!token ? (
+                <Auth onLogin={handleLogin} />
+            ) : (
+                <div>
+                    <button onClick={handleLogout}>Logout</button>
+                    <MediaTabs />
+                </div>
+            )}
+        </div>
+    );
 }
 
 export default App;

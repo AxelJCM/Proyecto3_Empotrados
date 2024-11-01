@@ -1,26 +1,20 @@
 // src/components/MediaTabs.js
-import React from 'react';
+import React, { useState } from 'react';
+import VideoFilter from './VideoFilter';
 import './MediaTabs.css';
 
-function MediaTabs({ tabs }) {
-  const [activeTab, setActiveTab] = React.useState(Object.keys(tabs)[0]);
+function MediaTabs() {
+    const [activeTab, setActiveTab] = useState('video');
 
-  return (
-    <div className="tabs-container">
-      <div className="tabs-header">
-        {Object.keys(tabs).map((tabKey) => (
-          <div
-            key={tabKey}
-            className={`tab ${activeTab === tabKey ? 'active' : ''}`}
-            onClick={() => setActiveTab(tabKey)}
-          >
-            {tabKey.charAt(0).toUpperCase() + tabKey.slice(1)}
-          </div>
-        ))}
-      </div>
-      <div className="tabs-content">{tabs[activeTab]}</div>
-    </div>
-  );
+    return (
+        <div className="media-tabs">
+            <button onClick={() => setActiveTab('photo')}>Photo</button>
+            <button onClick={() => setActiveTab('video')}>Video</button>
+            <div className="tab-content">
+                {activeTab === 'photo' ? <h2>Photo Display (WIP)</h2> : <VideoFilter />}
+            </div>
+        </div>
+    );
 }
 
 export default MediaTabs;
