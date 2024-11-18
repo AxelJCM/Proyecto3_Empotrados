@@ -1,0 +1,37 @@
+
+# Compile driver
+make -C /usr/src/linux-headers-$(uname -r) M=$(pwd modules)
+
+# Bind driver to its file
+sudo mknod /dev/gamepad_dev c 60 0
+sudo chmod 666 /dev/gamepad_dev
+
+# Install and check driver
+sudo insmod output/usb_gamepad_driver.ko
+lsmod
+
+# Write to driver
+echo -n H >/dev/gamepad_dev
+
+# Read from driver
+cat /dev/gamepad_dev
+
+# Remove driver
+sudo rmmod usb_gamepad_driver
+
+# Show latest kernel prints
+sudo dmesg | tail
+sudo dmesg | grep usb_gamepad_driver
+
+
+ls /sys/bus/hid/drivers/usb_gamepad_driver/
+ls /sys/bus/hid/drivers/hid-generic/
+
+
+# Check info about the usb device
+lsusb
+lsusb -s 1:8 -v
+
+idVendor           0x0583
+idProduct          0xa009
+
