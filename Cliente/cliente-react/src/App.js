@@ -10,11 +10,13 @@ function App() {
     const handleLogin = (newToken) => {
         setToken(newToken);
         console.log("Logged in with token:", newToken);
+        // Store the token in localStorage or state
     };
 
     const handleLogout = () => {
         setToken(null);
         console.log("Logged out");
+        // Remove token from localStorage if needed
     };
 
     return (
@@ -32,4 +34,3 @@ function App() {
 }
 
 export default App;
-

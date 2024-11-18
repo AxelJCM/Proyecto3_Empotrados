@@ -8,16 +8,20 @@ function Auth({ onLogin }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const response = await fetch('http://localhost:8080/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
-        });
-        const data = await response.json();
-        if (response.ok) {
-            onLogin(data.token);
-        } else {
-            alert("Invalid Credentials");
+        try {
+            const response = await fetch('http://localhost:5000/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            const data = await response.json();
+            if (response.ok) {
+                onLogin(data.token); // Pass the token to parent component
+            } else {
+                alert("Invalid Credentials");
+            }
+        } catch (error) {
+            console.error("Login failed:", error);
         }
     };
 

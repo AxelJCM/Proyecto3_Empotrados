@@ -1,56 +1,67 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
+from flask_cors import CORS
+from werkzeug.security import check_password_hash, generate_password_hash
+import cv2
+import numpy as np
+import io
+from PIL import Image
 import jwt
 import datetime
-from flask_cors import CORS
-import random
-import base64
 
 app = Flask(__name__)
 CORS(app)
 
-SECRET_KEY = "supersecretkey"
-VALID_USERNAME = "user"
-VALID_PASSWORD = "1234"
+users_db = {
+    "user": generate_password_hash("1234")
+}
 
-# Ruta para iniciar sesión y obtener un token JWT
+SECRET_KEY = "your_secret_key_here"
+
+# Login endpoint
 @app.route('/login', methods=['POST'])
 def login():
-    data = request.json
+    data = request.get_json()
     username = data.get('username')
     password = data.get('password')
 
-    if username == VALID_USERNAME and password == VALID_PASSWORD:
+    # Validate credentials
+    if username in users_db and check_password_hash(users_db[username], password):
+        # Generate token
         token = jwt.encode({
-            'user': username,
-            'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=30)
-        }, SECRET_KEY, algorithm="HS256")
-        return jsonify({"token": token}), 200
+            'username': username,
+            'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=1)
+        }, SECRET_KEY, algorithm='HS256')
+
+        return jsonify({"token": token})
     else:
-        return jsonify({"message": "Invalid Credentials"}), 401
+        return jsonify({"message": "Invalid credentials"}), 401
 
-# Middleware para verificar el token JWT
-def token_required(f):
-    def wrapper(*args, **kwargs):
-        token = request.headers.get('Authorization')
-        if not token:
-            return jsonify({"message": "Token is missing!"}), 401
-        try:
-            token = token.split()[1]
-            jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-        except Exception as e:
-            return jsonify({"message": "Invalid token!"}), 401
-        return f(*args, **kwargs)
-    wrapper.__name__ = f.__name__
-    return wrapper
+# Apply filter endpoint
+@app.route('/apply-filter', methods=['POST'])
+def apply_filter():
+    # Obtener el filtro que se quiere aplicar
+    filter_type = request.form.get('filter')
 
-# Ruta para simular tomar una foto
-@app.route('/take-photo', methods=['POST'])
-@token_required
-def take_photo():
-    simulated_photo_base64 = (
-        "iVBORw0KGgoAAAANSUhEUgAAAMgAAADICAYAAACt..."
-    )
-    return jsonify({"photo": simulated_photo_base64}), 200
+    # Leer la imagen desde la solicitud
+    file = request.files['image']
+    img = Image.open(file.stream)
+    img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
+
+    # Aplicar el filtro solicitado
+    if filter_type == 'grayscale':
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    elif filter_type == 'sepia':
+        sepia_filter = np.array([[0.272, 0.534, 0.131],
+                                 [0.349, 0.686, 0.168],
+                                 [0.393, 0.769, 0.189]])
+        img = cv2.transform(img, sepia_filter)
+        img = np.clip(img, 0, 255)
+    elif filter_type == 'invert':
+        img = cv2.bitwise_not(img)
+
+    # Convertir de vuelta a imagen
+    _, img_encoded = cv2.imencode('.jpg', img)
+    return send_file(io.BytesIO(img_encoded), mimetype='image/jpeg')
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080)
+    app.run(host='0.0.0.0', port=5000, debug=True)
