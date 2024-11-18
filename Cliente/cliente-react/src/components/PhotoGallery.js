@@ -17,10 +17,6 @@ function PhotoGallery() {
         setSelectedPhoto(photo);
     };
 
-    const applyFilter = (photo) => {
-        return selectedPhoto === photo ? filter : 'none';
-    };
-
     return (
         <div className="photo-gallery">
             <input type="file" multiple accept="image/*" onChange={handleUpload} />
@@ -32,7 +28,7 @@ function PhotoGallery() {
                         src={photo}
                         alt={`uploaded ${index}`}
                         onClick={() => handlePhotoClick(photo)}
-                        style={{ filter: applyFilter(photo) }}
+                        style={{ filter: selectedPhoto === photo ? filter : 'none' }}
                     />
                 ))}
             </div>

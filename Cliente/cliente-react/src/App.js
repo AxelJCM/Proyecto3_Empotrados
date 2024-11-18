@@ -23,7 +23,7 @@ function App() {
                 <Auth onLogin={handleLogin} />
             ) : (
                 <div>
-                    <button onClick={handleLogout}>Logout</button>
+                    <button onClick={handleLogout} className="logout-button">Logout</button>
                     <MediaTabs />
                 </div>
             )}
@@ -32,3 +32,4 @@ function App() {
 }
 
 export default App;
+

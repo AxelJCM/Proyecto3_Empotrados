@@ -9,8 +9,8 @@ app = Flask(__name__)
 CORS(app)
 
 SECRET_KEY = "supersecretkey"
-VALID_USERNAME = "abc"
-VALID_PASSWORD = "123"
+VALID_USERNAME = "user"
+VALID_PASSWORD = "1234"
 
 # Ruta para iniciar sesión y obtener un token JWT
 @app.route('/login', methods=['POST'])

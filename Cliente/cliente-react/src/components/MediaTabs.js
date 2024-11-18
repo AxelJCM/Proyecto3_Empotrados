@@ -2,24 +2,26 @@
 import React, { useState } from 'react';
 import VideoFilter from './VideoFilter';
 import PhotoGallery from './PhotoGallery';
-import CameraCapture from './CameraCapture'; // Importa CameraCapture
+import CameraCapture from './CameraCapture';
 import './MediaTabs.css';
 
 function MediaTabs() {
-    const [activeTab, setActiveTab] = useState('photoCamera'); // Cambia el valor inicial a 'photoCamera'
+    const [activeTab, setActiveTab] = useState('gallery');
 
     return (
         <div className="media-tabs">
-            <button onClick={() => setActiveTab('photoCamera')}>Photo & Camera</button> {/* Un botón para Photo & Camera */}
-            <button onClick={() => setActiveTab('video')}>Video</button>
-            <div className="tab-content">
-                {activeTab === 'photoCamera' && (
+            <div className="tabs-header">
+                <button onClick={() => setActiveTab('gallery')} className={`tab ${activeTab === 'gallery' ? 'active' : ''}`}>Gallery</button>
+                <button onClick={() => setActiveTab('video')} className={`tab ${activeTab === 'video' ? 'active' : ''}`}>Video</button>
+            </div>
+            <div className="tabs-content">
+                {activeTab === 'gallery' && (
                     <div>
-                        <CameraCapture /> {/* Incluye CameraCapture */}
-                        <PhotoGallery /> {/* Incluye PhotoGallery */}
+                        <CameraCapture />
+                        <PhotoGallery />
                     </div>
                 )}
-                {activeTab === 'video' && <VideoFilter />} {/* Muestra VideoFilter en su pestaña */}
+                {activeTab === 'video' && <VideoFilter />}
             </div>
         </div>
     );
