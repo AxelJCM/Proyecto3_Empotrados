@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify, send_file, Response
 from flask_cors import CORS
 from werkzeug.security import check_password_hash, generate_password_hash
 import cv2
@@ -16,6 +16,9 @@ users_db = {
 }
 
 SECRET_KEY = "your_secret_key_here"
+
+# Global variable to store the current filter
+current_filter = "none"
 
 # Login endpoint
 @app.route('/login', methods=['POST'])
@@ -36,7 +39,15 @@ def login():
     else:
         return jsonify({"message": "Invalid credentials"}), 401
 
-# Apply filter endpoint
+# Endpoint to update the current filter type
+@app.route('/set-filter', methods=['POST'])
+def set_filter():
+    global current_filter
+    filter_type = request.json.get('filter')
+    current_filter = filter_type
+    return {"message": "Filter updated successfully"}, 200
+
+# Apply filter to image endpoint
 @app.route('/apply-filter', methods=['POST'])
 def apply_filter():
     # Obtener el filtro que se quiere aplicar
@@ -62,6 +73,41 @@ def apply_filter():
     # Convertir de vuelta a imagen
     _, img_encoded = cv2.imencode('.jpg', img)
     return send_file(io.BytesIO(img_encoded), mimetype='image/jpeg')
+
+# Video streaming endpoint
+def generate_frames():
+    global current_filter
+    cap = cv2.VideoCapture(0)  # Use the default camera
+
+    while True:
+        success, frame = cap.read()
+        if not success:
+            break
+
+        # Apply filter based on the current filter setting
+        if current_filter == 'grayscale':
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)  # Convert back to BGR for consistency
+        elif current_filter == 'sepia':
+            sepia_filter = np.array([[0.272, 0.534, 0.131],
+                                     [0.349, 0.686, 0.168],
+                                     [0.393, 0.769, 0.189]])
+            frame = cv2.transform(frame, sepia_filter)
+            frame = np.clip(frame, 0, 255)
+        elif current_filter == 'invert':
+            frame = cv2.bitwise_not(frame)
+
+        # Encode frame as JPEG
+        ret, buffer = cv2.imencode('.jpg', frame)
+        frame = buffer.tobytes()
+
+        # Use multipart format to stream the frames
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+
+@app.route('/video-feed')
+def video_feed():
+    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
