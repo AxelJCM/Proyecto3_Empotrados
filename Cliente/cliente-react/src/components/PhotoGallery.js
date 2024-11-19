@@ -7,11 +7,14 @@ function PhotoGallery({ serverUrl }) {
     const [filters, setFilters] = useState([]);
     const [filteredPhoto, setFilteredPhoto] = useState(null);
 
-    const capturePhoto = async () => {
-        const response = await fetch(`${serverUrl}/video-feed`);
-        const blob = await response.blob();
-        const photoURL = URL.createObjectURL(blob);
-        setPhotos((prevPhotos) => [...prevPhotos, photoURL]);
+    const handleUpload = (e) => {
+        const files = Array.from(e.target.files);
+        const newPhotos = files.map((file) => URL.createObjectURL(file));
+        setPhotos((prevPhotos) => [...prevPhotos, ...newPhotos]);
+    };
+
+    const handlePhotoClick = (photo) => {
+        setSelectedPhoto(photo);
     };
 
     const handleFilterChange = (e) => {
@@ -26,8 +29,9 @@ function PhotoGallery({ serverUrl }) {
     const handleApplyFilters = async () => {
         if (!selectedPhoto || filters.length === 0) return;
 
+        const filterString = filters.join('');
         const formData = new FormData();
-        formData.append('filter', filters.join(''));
+        formData.append('filter', filterString);
 
         const response = await fetch(selectedPhoto);
         const blob = await response.blob();
@@ -49,11 +53,17 @@ function PhotoGallery({ serverUrl }) {
 
     return (
         <div className="photo-gallery">
-            <button onClick={capturePhoto}>Capture Photo</button>
+            <input type="file" multiple accept="image/*" onChange={handleUpload} />
             <h2>Gallery</h2>
             <div className="carousel">
                 {photos.map((photo, index) => (
-                    <img key={index} src={photo} alt={`photo ${index}`} onClick={() => setSelectedPhoto(photo)} />
+                    <img
+                        key={index}
+                        src={photo}
+                        alt={`uploaded ${index}`}
+                        onClick={() => handlePhotoClick(photo)}
+                        className={selectedPhoto === photo ? 'selected' : ''}
+                    />
                 ))}
             </div>
             <div className="filters">

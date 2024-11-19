@@ -1,24 +1,24 @@
 import React, { useState } from 'react';
-import VideoFilter from './VideoFilter';
+import VideoStream from './VideoStream';
 import PhotoGallery from './PhotoGallery';
 import './MediaTabs.css';
 
 function MediaTabs({ serverUrl }) {
-    const [activeTab, setActiveTab] = useState('gallery');
+    const [activeTab, setActiveTab] = useState('video');
 
     return (
         <div className="media-tabs">
             <div className="tabs-header">
-                <button onClick={() => setActiveTab('gallery')} className={`tab ${activeTab === 'gallery' ? 'active' : ''}`}>
-                    Gallery
-                </button>
                 <button onClick={() => setActiveTab('video')} className={`tab ${activeTab === 'video' ? 'active' : ''}`}>
-                    Video
+                    Video Stream
+                </button>
+                <button onClick={() => setActiveTab('gallery')} className={`tab ${activeTab === 'gallery' ? 'active' : ''}`}>
+                    Photo Gallery
                 </button>
             </div>
             <div className="tabs-content">
+                {activeTab === 'video' && <VideoStream serverUrl={serverUrl} />}
                 {activeTab === 'gallery' && <PhotoGallery serverUrl={serverUrl} />}
-                {activeTab === 'video' && <VideoFilter serverUrl={serverUrl} />}
             </div>
         </div>
     );
