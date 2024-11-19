@@ -1,25 +1,26 @@
 #include "filtros.h"
 #include <stdio.h>
 #include <math.h>
-#include <omp.h>  // Include the OpenMP header for parallelization
-// Convert image to grayscale
+#include <omp.h>  
+
+// Convierte la imagen a escala de grises
 void grayscale(int height, int width, RGBTRIPLE image[height][width])
 {
     double start_time = omp_get_wtime();
-    #pragma omp parallel for
+    #pragma omp parallel for collapse(2)
     for (int i = 0; i < height; i++)
     {
         for (int j = 0; j < width; j++)
         {
-            // Read the RGB values from the image
+            // Lee los valores RGB del píxel
             float blue = image[i][j].rgbtBlue;
             float green = image[i][j].rgbtGreen;
             float red = image[i][j].rgbtRed;
 
-            // Rounding the average to avoid errors i.e. > 255
+            // Calcula el promedio de los valores RGB y lo redondea
             float avg = round((blue + green + red) / 3);
 
-            // Assigning each of the RGB value equal to the avg of the RGB value of each pixel
+            // Asigna el promedio como nuevo valor para los componentes RGB del píxel
             image[i][j].rgbtBlue = image[i][j].rgbtGreen = image[i][j].rgbtRed = avg;
         }
     }
@@ -27,11 +28,11 @@ void grayscale(int height, int width, RGBTRIPLE image[height][width])
     double time_taken = end_time - start_time;
 
     // Print the execution time
-    printf("Execution time: %f seconds\n", time_taken);
+    printf("Tiempo de ejecución escala de grises: %f segundos\n", time_taken);
     return;
 }
 
-// Convert image to sepia
+// Convierte la imagen a un tono sepia
 void sepia(int height, int width, RGBTRIPLE image[height][width])
 {
     double start_time = omp_get_wtime();
@@ -40,19 +41,17 @@ void sepia(int height, int width, RGBTRIPLE image[height][width])
     {
         for (int j = 0; j < width; j++)
         {
-            // int thread_id = omp_get_thread_num(); // Get the current thread ID
-            // printf("Thread %d processing pixel [%d, %d]\n", thread_id, i, j);
-            // Initializing the RGB values from the image
+            //Inicializa los valores RGB del píxel
             float blue = image[i][j].rgbtBlue;
             float green = image[i][j].rgbtGreen;
             float red = image[i][j].rgbtRed;
 
-            // Calculating the sepia value from the given formula in the pset
+            // Calcula los valores sepia
             float sepiaRed = round(.393 * red + .769 * green + .189 * blue);
             float sepiaGreen = round(.349 * red + .686 * green  + .168 * blue);
             float sepiaBlue = round(.272 * red + .534 * green + .131 * blue);
 
-            // Checking if the values are not exceeding 255
+            // Asegura que los valores no excedan 255
             if (sepiaRed > 255)
             {
                 sepiaRed = 255;
@@ -65,8 +64,7 @@ void sepia(int height, int width, RGBTRIPLE image[height][width])
             {
                 sepiaGreen = 255;
             }
-
-            // Assigning the RGB values of the image to the new calculated sepia values
+            // Asigna los valores sepia al píxel
             image[i][j].rgbtBlue = sepiaBlue;
             image[i][j].rgbtGreen = sepiaGreen;
             image[i][j].rgbtRed = sepiaRed;
@@ -76,31 +74,29 @@ void sepia(int height, int width, RGBTRIPLE image[height][width])
     double time_taken = end_time - start_time;
 
     // Print the execution time
-    printf("Execution time: %f seconds\n", time_taken);
+    printf("Tiempo de ejecución sepia: %f segundos\n", time_taken);
     return;
 }
 
-// Reflect image horizontally
+// Refleja la imagen horizontalmente
 void reflect(int height, int width, RGBTRIPLE image[height][width])
 {
     double start_time = omp_get_wtime();
     #pragma omp parallel for collapse(2)
     for (int i = 0; i < height; i++)
     {
-        // If done till the 'width' it becomes reflected symmetrically vertically, that is why done till 'width/2'
+        //iterar hasta la mitad del ancho para reflejar horizontalmente
         for (int j = 0; j < width / 2; j++)
         {
-            // Initializing the RGB values from the image
+            // Guarda los valores del píxel actual
             int blue = image[i][j].rgbtBlue;
             int green = image[i][j].rgbtGreen;
             int red = image[i][j].rgbtRed;
-
-            // Reversing the image horizontally, just like reversing an 1D array
+            // Intercambia los píxeles de los extremos
             image[i][j].rgbtBlue = image[i][width - j - 1].rgbtBlue;
             image[i][j].rgbtGreen = image[i][width - j - 1].rgbtGreen;
             image[i][j].rgbtRed = image[i][width - j - 1].rgbtRed;
-
-            // Assigning the newly reverse image with the oriiginal RGB values
+            // Asigna los valores originales al píxel reflejado
             image[i][width - j - 1].rgbtBlue = blue;
             image[i][width - j - 1].rgbtGreen = green;
             image[i][width - j - 1].rgbtRed = red;
@@ -109,81 +105,16 @@ void reflect(int height, int width, RGBTRIPLE image[height][width])
     double end_time = omp_get_wtime();
     double time_taken = end_time - start_time;
 
-    // Print the execution time
-    printf("Execution time: %f seconds\n", time_taken);
+    printf("Tiempo de ejecución reflejar: %f segundos\n", time_taken);
     return;
 }
 
-// Blur image
-void blur(int height, int width, RGBTRIPLE image[height][width])
-{
-    // Creating a temporary image for storing values
-    RGBTRIPLE tmp[height][width];
-    float blue, green, red, count;
-
-    double start_time = omp_get_wtime();
-    //#pragma omp parallel for collapse(2)
-    for (int i = 0; i < height; i++)
-    {
-        for (int j = 0; j < width; j++)
-        {
-            blue = green = red = count = 0;
-
-            // This loop runs from rows i - 1 to i + 1, i.e. if i = 0, runs from -1 to 1, if i = 2, runs from 1 to 3
-            for (int x = i - 1; x <= i + 1; x++)
-            {
-                // This loop runs from columns j - 1 to j + 1, i.e. if j = 3, j runs from 2 to 4
-                for (int y = j - 1; y <= j + 1; y++)
-                {
-                    // Adding RGB values around 3x3 of the pixel
-                    // Check the pixels around
-                    if ((x >= 0 && x < height) && (y >= 0 && y < width))
-                    {
-                        blue += image[x][y].rgbtBlue;
-                        green += image[x][y].rgbtGreen;
-                        red += image[x][y].rgbtRed;
-                        // count records the number of pixels around the particular pixel
-                        count++;
-                    }
-                }
-            }
-
-            // Make sure that the values is not divided by zero
-            if (count != 0)
-            {
-                tmp[i][j].rgbtBlue = round(blue / count);
-                tmp[i][j].rgbtGreen = round(green / count);
-                tmp[i][j].rgbtRed = round(red / count);
-            }
-            else
-            {
-                return;
-            }
-        }
-    }
-
-    // Assigning the temporary values to the original image to create the blur
-    //#pragma omp parallel for collapse(2)
-    for (int i = 0; i < height; i++)
-    {
-        for (int j = 0; j < width; j++)
-        {
-            image[i][j] = tmp[i][j];
-        }
-    }
-
-
-    double end_time = omp_get_wtime();
-    double time_taken = end_time - start_time;
-    printf("Execution time: %f seconds\n", time_taken);
-    return;
-}
-
-// Detect edges
+// Detecta bordes en la imagen usando Sobel
 void edges(int height, int width, RGBTRIPLE image[height][width])
 {
+    // Definición del Kernel de Sobel 
     int Gx[3][3] = {{-1, 0, 1}, {-2, 0, 2}, {-1, 0, 1}}, Gy[3][3] = {{-1, -2, -1}, {0, 0, 0}, {1, 2, 1}};
-
+    // Copia la imagen original en un buffer temporal
     RGBTRIPLE temp[height][width];
     for (int i = 0; i < height; i++)
         for (int j = 0; j < width; j++)
@@ -196,9 +127,10 @@ void edges(int height, int width, RGBTRIPLE image[height][width])
     {
         for (int j = 0; j < width; j++)
         {
+            // Variables para almacenar los resultados de Gx y Gy
             int GxR = 0, GxG = 0, GxB = 0;
             int GyR = 0, GyG = 0, GyB = 0;
-
+            // Itera sobre los píxeles vecinos
             for (int x = i - 1; x <= i + 1; x++)
             {
                 for (int y = j - 1; y <= j + 1; y++)
@@ -214,6 +146,7 @@ void edges(int height, int width, RGBTRIPLE image[height][width])
                     }
                 }
             }
+            // Calcula la magnitud del gradiente y limita los valores a 0-255
             image[i][j].rgbtRed = cap(round(sqrt(GxR*GxR + GyR*GyR)));
             image[i][j].rgbtGreen = cap(round(sqrt(GxG*GxG + GyG*GyG)));
             image[i][j].rgbtBlue = cap(round(sqrt(GxB*GxB + GyB*GyB)));
@@ -221,9 +154,10 @@ void edges(int height, int width, RGBTRIPLE image[height][width])
     }
     double end_time = omp_get_wtime();
     double time_taken = end_time - start_time;
-    printf("Execution time: %f seconds\n", time_taken);
+    printf("Tiempo de ejecución Borde Sobel: %f segundos\n", time_taken);
     return;
 }
+// Función auxiliar para limitar los valores entre 0 y 255
 int cap(int value)
 {
     if (value < 0)
@@ -232,7 +166,10 @@ int cap(int value)
         return 255;
     return value;
 }
-void blur2(int height, int width, RGBTRIPLE image[height][width])
+
+//Es un blur de tipo mean blur es decir su kernel es de 3x3 con valores de 1
+//Tambien cono conocido como box blur 
+void blur(int height, int width, RGBTRIPLE image[height][width])
 {
     RGBTRIPLE temp[height][width];
     double start_time = omp_get_wtime();
@@ -281,27 +218,30 @@ void blur2(int height, int width, RGBTRIPLE image[height][width])
     }
     double end_time = omp_get_wtime();
     double time_taken = end_time - start_time;
-    printf("Execution time: %f seconds\n", time_taken);
+    printf("Tiempo de ejecución Blur: %f segundos\n", time_taken);
 }
+
 // Pixelate image
 void pixelate(int height, int width, RGBTRIPLE image[height][width], int blockSize)
 {
     double start_time = omp_get_wtime();
 
-    // Iterate over the image in blocks of blockSize x blockSize
+    // Itera sobre la imagen en bloques de tamaño blockSize x blockSize
     #pragma omp parallel for collapse(2)
     for (int i = 0; i < height; i += blockSize)
     {
         for (int j = 0; j < width; j += blockSize)
         {
+            // Variables para acumular los valores de color y contar los píxeles en el bloque
             int sumRed = 0, sumGreen = 0, sumBlue = 0;
             int pixelCount = 0;
 
-            // Calculate the average color of the block
+             // Calcula el color promedio del bloque           
             for (int bi = i; bi < i + blockSize && bi < height; bi++)
             {
                 for (int bj = j; bj < j + blockSize && bj < width; bj++)
                 {
+                    // Acumula los valores de los colores rojo, verde y azul
                     sumRed += image[bi][bj].rgbtRed;
                     sumGreen += image[bi][bj].rgbtGreen;
                     sumBlue += image[bi][bj].rgbtBlue;
@@ -309,12 +249,12 @@ void pixelate(int height, int width, RGBTRIPLE image[height][width], int blockSi
                 }
             }
 
-            // Calculate average color values
+            // Calcula los valores promedio de los colores del bloque
             int avgRed = round((float)sumRed / pixelCount);
             int avgGreen = round((float)sumGreen / pixelCount);
             int avgBlue = round((float)sumBlue / pixelCount);
 
-            // Assign the average color to all pixels in the block
+            // Asigna el color promedio a todos los pixles del bloque
             for (int bi = i; bi < i + blockSize && bi < height; bi++)
             {
                 for (int bj = j; bj < j + blockSize && bj < width; bj++)
@@ -330,9 +270,7 @@ void pixelate(int height, int width, RGBTRIPLE image[height][width], int blockSi
     double end_time = omp_get_wtime();
     double time_taken = end_time - start_time;
 
-    // Print the execution time
-    printf("Execution time: %f seconds\n", time_taken);
-
+    printf("Tiempo de ejecución Pixalar: %f segundos\n", time_taken);
     return;
 }
 
@@ -344,7 +282,7 @@ void sharpen(int height, int width, RGBTRIPLE image[height][width])
 
     RGBTRIPLE temp[height][width];
     
-    // Copy original image to temp array
+    // Copiar la img original al temp array
     #pragma omp parallel for collapse(2)
     for (int i = 0; i < height; i++)
     {
@@ -359,7 +297,7 @@ void sharpen(int height, int width, RGBTRIPLE image[height][width])
                         {-1,  5, -1 },
                         { 0, -1,  0 }};
     
-    // Apply kernel to image
+    // Aplicar el kernel a la imagen
     #pragma omp parallel for collapse(2)
     for (int i = 1; i < height - 1; i++)
     {
@@ -376,18 +314,17 @@ void sharpen(int height, int width, RGBTRIPLE image[height][width])
                     newBlue += temp[i + ki][j + kj].rgbtBlue * kernel[ki + 1][kj + 1];
                 }
             }
+        
 
-            // Clamp values to 0-255
-            image[i][j].rgbtRed = fmin(fmax(newRed, 0), 255);
-            image[i][j].rgbtGreen = fmin(fmax(newGreen, 0), 255);
-            image[i][j].rgbtBlue = fmin(fmax(newBlue, 0), 255);
+            image[i][j].rgbtRed = cap(newRed);
+            image[i][j].rgbtGreen = cap(newGreen);
+            image[i][j].rgbtBlue = cap(newBlue);
         }
     }
     double end_time = omp_get_wtime();
     double time_taken = end_time - start_time;
 
-    // Print the execution time
-    printf("Execution time: %f seconds\n", time_taken);
+    printf("Tiempo de ejecución Sharpen: %f segundos\n", time_taken);
 
     return;
 }
