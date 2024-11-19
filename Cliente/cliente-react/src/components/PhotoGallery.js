@@ -7,14 +7,11 @@ function PhotoGallery({ serverUrl }) {
     const [filters, setFilters] = useState([]);
     const [filteredPhoto, setFilteredPhoto] = useState(null);
 
-    const handleUpload = (e) => {
-        const files = Array.from(e.target.files);
-        const newPhotos = files.map((file) => URL.createObjectURL(file));
-        setPhotos((prevPhotos) => [...prevPhotos, ...newPhotos]);
-    };
-
-    const handlePhotoClick = (photo) => {
-        setSelectedPhoto(photo);
+    const capturePhoto = async () => {
+        const response = await fetch(`${serverUrl}/video-feed`);
+        const blob = await response.blob();
+        const photoURL = URL.createObjectURL(blob);
+        setPhotos((prevPhotos) => [...prevPhotos, photoURL]);
     };
 
     const handleFilterChange = (e) => {
@@ -29,9 +26,8 @@ function PhotoGallery({ serverUrl }) {
     const handleApplyFilters = async () => {
         if (!selectedPhoto || filters.length === 0) return;
 
-        const filterString = filters.join('');
         const formData = new FormData();
-        formData.append('filter', filterString);
+        formData.append('filter', filters.join(''));
 
         const response = await fetch(selectedPhoto);
         const blob = await response.blob();
@@ -53,76 +49,42 @@ function PhotoGallery({ serverUrl }) {
 
     return (
         <div className="photo-gallery">
-            <input type="file" multiple accept="image/*" onChange={handleUpload} />
+            <button onClick={capturePhoto}>Capture Photo</button>
             <h2>Gallery</h2>
             <div className="carousel">
                 {photos.map((photo, index) => (
-                    <img
-                        key={index}
-                        src={photo}
-                        alt={`uploaded ${index}`}
-                        onClick={() => handlePhotoClick(photo)}
-                        className={selectedPhoto === photo ? 'selected' : ''}
-                    />
+                    <img key={index} src={photo} alt={`photo ${index}`} onClick={() => setSelectedPhoto(photo)} />
                 ))}
             </div>
             <div className="filters">
                 <h3>Select Filters</h3>
                 <div>
                     <label>
-                        <input
-                            type="checkbox"
-                            value="b"
-                            onChange={handleFilterChange}
-                        />
+                        <input type="checkbox" value="b" onChange={handleFilterChange} />
                         Blur
                     </label>
                     <label>
-                        <input
-                            type="checkbox"
-                            value="g"
-                            onChange={handleFilterChange}
-                        />
+                        <input type="checkbox" value="g" onChange={handleFilterChange} />
                         Grayscale
                     </label>
                     <label>
-                        <input
-                            type="checkbox"
-                            value="r"
-                            onChange={handleFilterChange}
-                        />
+                        <input type="checkbox" value="r" onChange={handleFilterChange} />
                         Reflect
                     </label>
                     <label>
-                        <input
-                            type="checkbox"
-                            value="s"
-                            onChange={handleFilterChange}
-                        />
+                        <input type="checkbox" value="s" onChange={handleFilterChange} />
                         Sepia
                     </label>
                     <label>
-                        <input
-                            type="checkbox"
-                            value="e"
-                            onChange={handleFilterChange}
-                        />
+                        <input type="checkbox" value="e" onChange={handleFilterChange} />
                         Edges
                     </label>
                     <label>
-                        <input
-                            type="checkbox"
-                            value="p"
-                            onChange={handleFilterChange}
-                        />
+                        <input type="checkbox" value="p" onChange={handleFilterChange} />
                         Pixelate
                     </label>
                     <label>
-                        <input
-                            type="checkbox"
-                            value="z"
-                            onChange={handleFilterChange}
-                        />
+                        <input type="checkbox" value="z" onChange={handleFilterChange} />
                         Sharpen
                     </label>
                 </div>

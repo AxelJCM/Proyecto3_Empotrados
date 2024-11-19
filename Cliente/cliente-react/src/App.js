@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import MediaTabs from './components/MediaTabs';
 import './App.css';
 
 const App = () => {
-    const serverUrl = 'http://192.168.18.47:8080'; // Asegúrate de usar la IP correcta del servidor
+    const serverUrl = 'http://192.168.18.47:8080'; // Dirección del servidor
 
     return (
         <div>

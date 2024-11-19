@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import VideoFilter from './VideoFilter';
 import PhotoGallery from './PhotoGallery';
-import CameraCapture from './CameraCapture';
 import './MediaTabs.css';
 
 function MediaTabs({ serverUrl }) {
@@ -18,12 +17,7 @@ function MediaTabs({ serverUrl }) {
                 </button>
             </div>
             <div className="tabs-content">
-                {activeTab === 'gallery' && (
-                    <div>
-                        <CameraCapture />
-                        <PhotoGallery serverUrl={serverUrl} />
-                    </div>
-                )}
+                {activeTab === 'gallery' && <PhotoGallery serverUrl={serverUrl} />}
                 {activeTab === 'video' && <VideoFilter serverUrl={serverUrl} />}
             </div>
         </div>
@@ -31,3 +25,4 @@ function MediaTabs({ serverUrl }) {
 }
 
 export default MediaTabs;
+
