@@ -49,12 +49,6 @@ int init_gamepad();
 // Thread function for gamepad button handling
 void *button_listener(void *arg);
 
-// Star capturing frames
-int start_stream();
-
-// Stop capturing frames
-void stop_stream();
-
 // Closes the webcam device
 void close_webcam(CaptureBuffer *buffers);
 
@@ -62,7 +56,7 @@ void close_webcam(CaptureBuffer *buffers);
 void close_gamepad();
 
 // Capture and save video function
-int capture_video(CaptureBuffer *buffers, int client_fd);
+int capture_video(CaptureBuffer *buffers);
 
 // Saves a frame as a .jpg file
 int save_frame_as_jpg(CaptureBuffer buffer, int buf_size);
@@ -76,3 +70,4 @@ int finish_video_recording();
 
 
 #endif
+

@@ -1,96 +1,171 @@
-
 #include "webcam.h"
 
-#define BUFFER_SIZE 1024
 
-// Procesa solicitudes HTTP
-void process_request(int client_fd, CaptureBuffer *buffers) {
-    char buffer[BUFFER_SIZE] = {0};
-    read(client_fd, buffer, sizeof(buffer));
-    printf("Request received:\n%s\n", buffer);
+// Shared state for the live_streaming status
+volatile int live_streaming = 0;
+pthread_mutex_t stream_mutex;
 
-    if (strstr(buffer, "GET /video-feed")) {
-        // Send the HTTP MJPEG headers
-        char header[] =
-            "HTTP/1.1 200 OK\r\n"
-            "Content-Type: multipart/x-mixed-replace; boundary=frame\r\n"
-            "Access-Control-Allow-Origin: *\r\n\r\n";
+CaptureBuffer *buffers;
+
+
+// Stream video over an HTTP connection
+void *stream_video(void *arg) {
+    int client_sock = *(int *)arg;
+    free(arg);
+
+    printf("here 0\n");
+
+    
+    char response_header[] =
+        "HTTP/1.1 200 OK\r\n"
+        "Content-Type: multipart/x-mixed-replace; boundary=frame\r\n"
+        "Access-Control-Allow-Origin: *\r\n\r\n";
+
+    printf("here 2\n");
+    send(client_sock, response_header, strlen(response_header), 0);
+
+    printf("here 3\n");
+    
+    while (1) {
+        printf("here 4\n");
         
-        if (send(client_fd, header, strlen(header), 0) == -1){
-            perror("Sending HTTP MJPEG headers failed. Disconnecting.");
-            close(client_fd);
-            return 0;
+        
+        // Get an MJPEG frame
+        int frame_index = capture_video(buffers);
+        printf("index: %d\n", frame_index);
+        if (frame_index == -1) {
+            perror("Failed to get frame");
+            break;
         }
-        printf("Streaming video feed...\n");
-        start_stream();
-
-        if (capture_video(buffers, client_fd) == -1) {
-            printf("error\n");
+        printf("here 5\n");
+        // Send frame boundary
+        if (send(client_sock, FRAME_BOUNDARY, strlen(FRAME_BOUNDARY), 0) == -1){
+            break;
+        }
+        printf("here 6\n");
+        // Send frame header
+        char frame_header[128];
+        int header_len = snprintf(frame_header, sizeof(frame_header), FRAME_HEADER, (int)buffers[frame_index].length);
+        if (send(client_sock, frame_header, header_len, 0) == -1){
+            break;
+        }
+        printf("here 7\n");
+        // Send frame data
+        if (send(client_sock, buffers[frame_index].start, buffers[frame_index].length, 0) == -1){
+            break;
         }
 
-        stop_stream();
-    } else {
-        char response[] = "HTTP/1.1 404 Not Found\r\n\r\n";
-        send(client_fd, response, sizeof(response) - 1, 0);
+        printf("here 8\n");
+        pthread_mutex_lock(&stream_mutex);
+        if (!live_streaming) {
+            pthread_mutex_unlock(&stream_mutex);
+            break;
+        }
+        pthread_mutex_unlock(&stream_mutex);
+        printf("here 9\n");
+        usleep(2000000);
     }
 
-    close(client_fd);
+    close(client_sock);
+    printf("Stream closed.\n");
+    return NULL;
 }
 
+// Handle HTTP requests
+void handle_request(int client_sock) {
+    char buffer[4096];
+    recv(client_sock, buffer, sizeof(buffer) - 1, 0);
+
+    if (strncmp(buffer, "POST /start", 11) == 0) 
+    {
+        pthread_mutex_lock(&stream_mutex);
+        live_streaming = 1;
+        pthread_mutex_unlock(&stream_mutex);
+        const char *response = 
+            "HTTP/1.1 200 OK\r\n"
+            "Access-Control-Allow-Origin: *\r\n\r\n"
+            "live_streaming started";
+        send(client_sock, response, strlen(response), 0);
+    } 
+    else if (strncmp(buffer, "POST /stop", 10) == 0) 
+    {
+        pthread_mutex_lock(&stream_mutex);
+        live_streaming = 0;
+        pthread_mutex_unlock(&stream_mutex);
+        const char *response = 
+            "HTTP/1.1 200 OK\r\n"
+            "Access-Control-Allow-Origin: *\r\n\r\n"
+            "live_streaming stopped";
+        send(client_sock, response, strlen(response), 0);
+    } 
+    else if (strncmp(buffer, "GET /video-stream", 17) == 0) 
+    {
+        pthread_t stream_thread;
+        int *arg = malloc(sizeof(int));
+        *arg = client_sock;
+        pthread_create(&stream_thread, NULL, stream_video, arg);
+        pthread_detach(stream_thread);
+        return;
+    } 
+    else {
+        const char *response = 
+            "HTTP/1.1 404 Not Found\r\n"
+            "Access-Control-Allow-Origin: *\r\n\r\n";
+        send(client_sock, response, strlen(response), 0);
+    }
+
+    close(client_sock);
+}
+
+// Main server loop
 int main() {
-    int server_fd, client_fd;
-    struct sockaddr_in server_addr, client_addr;
-    socklen_t addr_len = sizeof(client_addr);
+    int server_fd, client_sock;
+    struct sockaddr_in address;
+    socklen_t addr_len = sizeof(address);
 
-    CaptureBuffer *buffers;
-
-    signal(SIGPIPE, SIG_IGN); // Ignorar SIGPIPE para evitar crash al desconectar clientes
-
-    // Inicializar la webcam
     if (init_webcam(&buffers) == -1) {
-        fprintf(stderr, "Failed to initialize webcam\n");
+        fprintf(stderr, "Failed to initialize device\n");
         exit(EXIT_FAILURE);
     }
 
-    // Crear el socket del servidor
-    server_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (server_fd < 0) {
-        perror("Socket creation failed");
+    pthread_mutex_init(&stream_mutex, NULL);
+
+    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
+        perror("Socket failed");
         exit(EXIT_FAILURE);
     }
 
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = INADDR_ANY;
-    server_addr.sin_port = htons(PORT);
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = INADDR_ANY;
+    address.sin_port = htons(PORT);
 
-    // Enlazar el socket
-    if (bind(server_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
+    if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
         perror("Bind failed");
         close(server_fd);
         exit(EXIT_FAILURE);
     }
 
-    // Escuchar conexiones entrantes
-    if (listen(server_fd, 5) < 0) {
+    if (listen(server_fd, 10) < 0) {
         perror("Listen failed");
         close(server_fd);
         exit(EXIT_FAILURE);
     }
 
-    printf("Server listening on port %d\n", PORT);
+    printf("Server listening on port 8080\n");
 
-    // Aceptar y procesar solicitudes de clientes
     while (1) {
-        client_fd = accept(server_fd, (struct sockaddr *)&client_addr, &addr_len);
-        if (client_fd < 0) {
+        client_sock = accept(server_fd, (struct sockaddr *)&address, &addr_len);
+        if (client_sock < 0) {
             perror("Accept failed");
             continue;
         }
-        process_request(client_fd, buffers);
+
+        handle_request(client_sock);
     }
 
-    close_webcam(buffers);
     close(server_fd);
+    pthread_mutex_destroy(&stream_mutex);
 
+    close_webcam(buffers);
     return 0;
 }

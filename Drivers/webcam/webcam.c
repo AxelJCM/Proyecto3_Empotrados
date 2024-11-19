@@ -242,7 +242,12 @@ int init_webcam(CaptureBuffer **buffers)
         }
     }
 
-    
+    if (ioctl(webcam_fd, VIDIOC_STREAMON, &type) == -1) {
+        perror("Starting webcam stream");
+        close(webcam_fd);
+        return -1;
+    }
+
     printf("Webcam device ready.\n");
 
     return 0;
@@ -324,36 +329,17 @@ void *button_listener(void *arg)
 
 
 
-
-int start_stream()
-{
-    if (ioctl(webcam_fd, VIDIOC_STREAMON, &type) == -1) {
-        perror("Starting capture");
-        close(webcam_fd);
-        return -1;
-    }
-    streaming = 1;
-
-    printf("Streaming started.\n");
-    return 0;
-}
-
-void stop_stream()
-{
-    ioctl(webcam_fd, VIDIOC_STREAMOFF, &type);
-    printf("Streaming stopped.\n");
-}
-
-
-
 void close_webcam(CaptureBuffer *buffers)
 {
+    ioctl(webcam_fd, VIDIOC_STREAMOFF, &type);
+
     // Cleanup
     for (size_t i = 0; i < req.count; ++i) {
         munmap(buffers[i].start, buffers[i].length);
     }
     free(buffers);
     close(webcam_fd);
+    printf("Webcam closed.\n");
 }
 
 void close_gamepad()
@@ -418,111 +404,104 @@ int finish_video_recording()
 
 
 
-
-int capture_video(CaptureBuffer *buffers, int client_fd) 
+//int capture_video(CaptureBuffer *buffers, int client_fd) 
+int capture_video(CaptureBuffer *buffers) 
 {   
-    while(1) {
 
-        pthread_mutex_lock(&key_mutex);
-
-        if (streaming == 0) {
-            close(client_fd);
-            pthread_mutex_unlock(&key_mutex);
-            return 0;
-        } 
-
-        struct v4l2_buffer buf;
-        memset(&buf, 0, sizeof(buf));
-        buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-        buf.memory = V4L2_MEMORY_MMAP;
-
-        // Dequeue buffer
-        if (ioctl(webcam_fd, VIDIOC_DQBUF, &buf) == -1) {
-            perror("Dequeueing buffer");
-            streaming = 0;
-            close(client_fd);
-            pthread_mutex_unlock(&key_mutex);
-            return -1;
-        }
-        
-        
-        
-        // Write the MJPEG frame to file, buf.index indicates which buffer is ready with data
-        //if (recording)
-        //    fwrite(buffers[buf.index].start, buf.bytesused, 1, video_file);
-        
-
-        // Apply filter
-        int width;
-        int height;
-        size_t jpeg_size;
-        unsigned char *rgb_data = decode_mjpeg_to_rgb((unsigned char *)buffers[buf.index].start, buf.bytesused, &width, &height);
-        
-        
-        apply_grayscale(rgb_data, width, height);
-        unsigned char* mjpeg_frame = encode_rgb_to_mjpeg(rgb_data, width, height, 50, &jpeg_size);
-
-        if (take_picture) {
-            if (save_frame_as_jpg(buffers[buf.index], buf.bytesused) == -1) {
-                perror("Saving picture.");
-                streaming = 0;
-                close(client_fd);
-                pthread_mutex_unlock(&key_mutex);
-                return -1;
-            }
-            take_picture = 0;
-        }
-
-
-        // Send frame boundary
-        if (send(client_fd, FRAME_BOUNDARY, strlen(FRAME_BOUNDARY), 0) == -1){
-            perror("Sending frame boundary failed. Disconnecting.");
-            if (recording) finish_video_recording();
-            streaming = 0;
-            close(client_fd);
-            pthread_mutex_unlock(&key_mutex);
-            return 0;
-        }
-
-        
-
-        // Send frame header
-        char frame_header[128];
-        int header_len = snprintf(frame_header, sizeof(frame_header), FRAME_HEADER, (int)jpeg_size);
-        if (send(client_fd, frame_header, header_len, 0) == -1){
-            perror("Sending frame header failed. Disconnecting.");
-            if (recording) finish_video_recording();
-            streaming = 0;
-            close(client_fd);
-            pthread_mutex_unlock(&key_mutex);
-            return 0;
-        }
-
-        // Send frame data
-        if (send(client_fd, mjpeg_frame, jpeg_size, 0) == -1){
-            perror("Sending frame data failed. Disconnecting.");
-            if (recording) finish_video_recording();
-            streaming = 0;
-            close(client_fd);
-            pthread_mutex_unlock(&key_mutex);
-            return 0;
-        }
-
-        
-        // Re-queue the buffer
-        if (ioctl(webcam_fd, VIDIOC_QBUF, &buf) == -1) {
-            perror("Re-queueing buffer");\
-            streaming = 0;
-            close(client_fd);
-            pthread_mutex_unlock(&key_mutex);
-            return -1;
-        }
-
+    /*
+    if (streaming == 0) {
+        close(client_fd);
         pthread_mutex_unlock(&key_mutex);
-        usleep(100);
+        return 0;
+    } */
+
+    struct v4l2_buffer buf;
+    memset(&buf, 0, sizeof(buf));
+    buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    buf.memory = V4L2_MEMORY_MMAP;
+
+    // Dequeue buffer
+    if (ioctl(webcam_fd, VIDIOC_DQBUF, &buf) == -1) {
+        perror("Dequeueing buffer");
+        //streaming = 0;
+        //pthread_mutex_unlock(&key_mutex);
+        return -1;
+    }
+    
+    
+    
+    // Write the MJPEG frame to file, buf.index indicates which buffer is ready with data
+    //if (recording)
+    //    fwrite(buffers[buf.index].start, buf.bytesused, 1, video_file);
+    
+    /*
+    // Apply filter
+    int width;
+    int height;
+    size_t jpeg_size;
+    unsigned char *rgb_data = decode_mjpeg_to_rgb((unsigned char *)buffers[buf.index].start, buf.bytesused, &width, &height);
+    
+    
+    apply_grayscale(rgb_data, width, height);
+    unsigned char* mjpeg_frame = encode_rgb_to_mjpeg(rgb_data, width, height, 50, &jpeg_size);
+
+    if (take_picture) {
+        if (save_frame_as_jpg(buffers[buf.index], buf.bytesused) == -1) {
+            perror("Saving picture.");
+            streaming = 0;
+            close(client_fd);
+            pthread_mutex_unlock(&key_mutex);
+            return -1;
+        }
+        take_picture = 0;
     }
 
-    return 0;
+
+    // Send frame boundary
+    if (send(client_fd, FRAME_BOUNDARY, strlen(FRAME_BOUNDARY), 0) == -1){
+        perror("Sending frame boundary failed. Disconnecting.");
+        if (recording) finish_video_recording();
+        streaming = 0;
+        close(client_fd);
+        pthread_mutex_unlock(&key_mutex);
+        return 0;
+    }
+
+    
+    // Send frame header
+    char frame_header[128];
+    int header_len = snprintf(frame_header, sizeof(frame_header), FRAME_HEADER, (int)jpeg_size);
+    if (send(client_fd, frame_header, header_len, 0) == -1){
+        perror("Sending frame header failed. Disconnecting.");
+        if (recording) finish_video_recording();
+        streaming = 0;
+        close(client_fd);
+        pthread_mutex_unlock(&key_mutex);
+        return 0;
+    }
+
+    // Send frame data
+    if (send(client_fd, mjpeg_frame, jpeg_size, 0) == -1){
+        perror("Sending frame data failed. Disconnecting.");
+        if (recording) finish_video_recording();
+        streaming = 0;
+        close(client_fd);
+        pthread_mutex_unlock(&key_mutex);
+        return 0;
+    }
+    */
+
+    
+    // Re-queue the buffer
+    if (ioctl(webcam_fd, VIDIOC_QBUF, &buf) == -1) {
+        perror("Re-queueing buffer");
+        //streaming = 0;
+        //pthread_mutex_unlock(&key_mutex);
+        return -1;
+    }
+
+
+    return buf.index;
 }
 
 
