@@ -5,9 +5,10 @@
 int handle_client(CaptureBuffer *buffers, int client_fd) 
 {
     // Send the HTTP MJPEG headers
-    char header[] = 
+    char header[] =
         "HTTP/1.1 200 OK\r\n"
-        "Content-Type: multipart/x-mixed-replace; boundary=frame\r\n\r\n";
+        "Content-Type: multipart/x-mixed-replace; boundary=frame\r\n"
+        "Access-Control-Allow-Origin: *\r\n\r\n";
     
     if (send(client_fd, header, strlen(header), 0) == -1){
         perror("Sending HTTP MJPEG headers failed. Disconnecting.");

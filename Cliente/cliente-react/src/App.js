@@ -1,34 +1,23 @@
-// src/App.js
-import React, { useState } from 'react';
-import Auth from './components/Auth';
-import MediaTabs from './components/MediaTabs';
-import './App.css';
+import React from 'react';
 
 function App() {
-    const [token, setToken] = useState(null);
-
-    const handleLogin = (newToken) => {
-        setToken(newToken);
-        console.log("Logged in with token:", newToken);
-        // Store the token in localStorage or state
-    };
-
-    const handleLogout = () => {
-        setToken(null);
-        console.log("Logged out");
-        // Remove token from localStorage if needed
-    };
-
     return (
-        <div className="App">
-            {!token ? (
-                <Auth onLogin={handleLogin} />
-            ) : (
-                <div>
-                    <button onClick={handleLogout} className="logout-button">Logout</button>
-                    <MediaTabs />
-                </div>
-            )}
+        <div>
+            <h1>Live Video Feed</h1>
+            <VideoFeed />
+        </div>
+    );
+}
+
+function VideoFeed() {
+    return (
+        <div>
+            <h2>Video Stream</h2>
+            <img
+                src="http://192.168.18.47:8080/video-feed"
+                alt="Video Feed"
+                style={{ width: '640px', height: '480px', border: '2px solid black' }}
+            />
         </div>
     );
 }

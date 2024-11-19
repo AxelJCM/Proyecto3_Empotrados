@@ -16,6 +16,8 @@
 #include <termios.h>
 #include <netinet/in.h>
 #include <signal.h>
+#include <arpa/inet.h>
+#include <jpeglib.h>
 
 
 #define VIDEO_DEVICE "/dev/video0"
@@ -26,6 +28,7 @@
 #define IMAGE_OUT_DIR "frames/image.jpg"
 
 #define PORT 8080
+#define IP "192.168.18.47"
 #define FRAME_BOUNDARY "--frame\r\n"
 #define FRAME_HEADER "Content-Type: image/jpeg\r\nContent-Length: %d\r\n\r\n"
 
