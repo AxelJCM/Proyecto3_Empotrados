@@ -1,8 +1,7 @@
-// src/components/CameraCapture.js
 import React, { useRef, useEffect } from 'react';
 import './CameraCapture.css';
 
-function CameraCapture({ onCapture }) { // Agrega onCapture como prop
+function CameraCapture({ onCapture }) {
     const webcamRef = useRef(null);
 
     useEffect(() => {
@@ -11,7 +10,7 @@ function CameraCapture({ onCapture }) { // Agrega onCapture como prop
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
                 webcamRef.current.srcObject = stream;
             } catch (err) {
-                console.error("Error accessing webcam: ", err);
+                console.error('Error accessing webcam: ', err);
             }
         };
         startWebcam();
@@ -19,7 +18,7 @@ function CameraCapture({ onCapture }) { // Agrega onCapture como prop
         return () => {
             if (webcamRef.current && webcamRef.current.srcObject) {
                 const tracks = webcamRef.current.srcObject.getTracks();
-                tracks.forEach(track => track.stop());
+                tracks.forEach((track) => track.stop());
             }
         };
     }, []);
@@ -30,15 +29,15 @@ function CameraCapture({ onCapture }) { // Agrega onCapture como prop
         canvas.height = webcamRef.current.videoHeight;
         const context = canvas.getContext('2d');
         context.drawImage(webcamRef.current, 0, 0, canvas.width, canvas.height);
-        const photoData = canvas.toDataURL('image/jpeg'); // Convierte la imagen a base64
-        onCapture(photoData); // Llama a onCapture con la foto capturada
+        const photoData = canvas.toDataURL('image/jpeg');
+        onCapture(photoData);
     };
 
     return (
         <div className="camera-capture">
             <h3>Camera Capture</h3>
             <video ref={webcamRef} autoPlay style={{ width: '100%' }} />
-            <button onClick={capturePhoto}>Take Photo</button> {/* Botón para tomar foto */}
+            <button onClick={capturePhoto}>Take Photo</button>
         </div>
     );
 }
