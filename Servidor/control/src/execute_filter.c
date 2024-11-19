@@ -2,152 +2,145 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include "filtros.h"
 
 int main(int argc, char *argv[])
 {
-    // Define allowable filters
+    // Filtros válidos que el programa puede aplicar
     char *valid_filters = "bgrsepz";
-    char filters[argc]; // Array to store multiple filters
+    // Array para almacenar los filtros seleccionados por el usuario
+    char filters[argc]; 
     int filter_count = 0;
 
-    // Parse filter flags
+    // Procesar los argumentos de línea de comandos para identificar los filtros
     int opt;
     while ((opt = getopt(argc, argv, valid_filters)) != -1)
     {
-        if (opt == '?')
+        if (opt == '?') // Si se encuentra un filtro inválido
         {
             fprintf(stderr, "Invalid filter.\n");
-            return 1;
+            return 1; // Error por filtro no reconocido
         }
+        // Almacenar el filtro válido en el array
         filters[filter_count++] = (char)opt;
     }
 
-    // Ensure proper usage
+    // Verificar que se hayan proporcionado los argumentos requeridos: infile y outfile
     if (argc != optind + 2)
     {
         fprintf(stderr, "Usage: filter [flags] infile outfile\n");
-        return 3;
+        return 3; // Error por uso incorrecto
     }
 
-    // Null-terminate the filters string for safety
+    // Terminar el array de filtros con un carácter nulo
     filters[filter_count] = '\0';
 
-    // Remember filenames
+    // Almacenar los nombres de los archivos de entrada y salida
     char *infile = argv[optind];
     char *outfile = argv[optind + 1];
 
-    // Open input file
+    // Abrir el archivo de entrada para lectura
     FILE *inptr = fopen(infile, "r");
     if (inptr == NULL)
     {
         fprintf(stderr, "Could not open %s.\n", infile);
-        return 4;
+        return 4; // Error al abrir el archivo de entrada
     }
 
-    // Open output file
+    // Abrir el archivo de salida para escritura
     FILE *outptr = fopen(outfile, "w");
     if (outptr == NULL)
     {
         fclose(inptr);
         fprintf(stderr, "Could not create %s.\n", outfile);
-        return 5;
+        return 5; // Error al crear el archivo de salida
     }
 
-    // Read infile's BITMAPFILEHEADER
+    // Leer el encabezado del archivo BMP (BITMAPFILEHEADER)
     BITMAPFILEHEADER bf;
     fread(&bf, sizeof(BITMAPFILEHEADER), 1, inptr);
 
-    // Read infile's BITMAPINFOHEADER
+    // Leer el encabezado de información BMP (BITMAPINFOHEADER)
     BITMAPINFOHEADER bi;
     fread(&bi, sizeof(BITMAPINFOHEADER), 1, inptr);
 
-    // Ensure infile is a 24-bit uncompressed BMP 4.0
-    if (bf.bfType != 0x4d42 || bf.bfOffBits != 54 || bi.biSize != 40 ||
-        bi.biBitCount != 24 || bi.biCompression != 0)
-    {
-        fclose(outptr);
-        fclose(inptr);
-        fprintf(stderr, "Unsupported file format.\n");
-        return 6;
-    }
-
+    // Obtener las dimensiones de la imagen
     int height = abs(bi.biHeight);
     int width = bi.biWidth;
 
-    // Allocate memory for image
+    // Reservar memoria para almacenar la imagen completa
     RGBTRIPLE(*image)[width] = calloc(height, width * sizeof(RGBTRIPLE));
     if (image == NULL)
     {
         fprintf(stderr, "Not enough memory to store image.\n");
         fclose(outptr);
         fclose(inptr);
-        return 7;
+        return 7; // Error por falta de memoria
     }
 
-    // Determine padding for scanlines
+    // Calcular el relleno (padding) para las líneas de escaneo
     int padding = (4 - (width * sizeof(RGBTRIPLE)) % 4) % 4;
 
-    // Read the input image into memory
+    // Leer la imagen del archivo de entrada a la memoria
     for (int i = 0; i < height; i++)
     {
         fread(image[i], sizeof(RGBTRIPLE), width, inptr);
-        fseek(inptr, padding, SEEK_CUR);
+        fseek(inptr, padding, SEEK_CUR); // Saltar el relleno
     }
 
-    // Apply each filter sequentially
+    // Aplicar cada filtro seleccionado en secuencia
     for (int i = 0; i < filter_count; i++)
     {
         switch (filters[i])
         {
             case 'b':
-                blur2(height, width, image);
+                blur(height, width, image); // Aplicar desenfoque
                 break;
             case 'g':
-                grayscale(height, width, image);
+                grayscale(height, width, image); // Convertir a escala de grises
                 break;
             case 'r':
-                reflect(height, width, image);
+                reflect(height, width, image); // Reflejar horizontalmente
                 break;
             case 's':
-                sepia(height, width, image);
+                sepia(height, width, image); // Aplicar filtro sepia
                 break;
             case 'e':
-                edges(height, width, image);
+                edges(height, width, image); // Detectar bordes
                 break;
             case 'p':
-                pixelate(height, width, image,4);
+                pixelate(height, width, image, 9); // Pixelar la imagen
                 break;
             case 'z':
-                sharpen(height, width, image);
+                sharpen(height, width, image); // Agregar nitidez
                 break;
             default:
                 fprintf(stderr, "Unknown filter: %c\n", filters[i]);
-                return 8;
+                return 8; // Error por filtro desconocido
         }
     }
 
-    // Write outfile's BITMAPFILEHEADER
+    // Escribir el encabezado del archivo BMP en el archivo de salida
     fwrite(&bf, sizeof(BITMAPFILEHEADER), 1, outptr);
 
-    // Write outfile's BITMAPINFOHEADER
+    // Escribir el encabezado de información BMP en el archivo de salida
     fwrite(&bi, sizeof(BITMAPINFOHEADER), 1, outptr);
 
-    // Write the modified image to the output file
+    // Escribir la imagen modificada en el archivo de salida
     for (int i = 0; i < height; i++)
     {
         fwrite(image[i], sizeof(RGBTRIPLE), width, outptr);
+        // Escribir el relleno
         for (int k = 0; k < padding; k++)
         {
             fputc(0x00, outptr);
         }
     }
 
-    // Free memory and close files
+    // Liberar memoria y cerrar los archivos abiertos
     free(image);
     fclose(inptr);
     fclose(outptr);
 
-    return 0;
+    return 0; // Éxito
 }
