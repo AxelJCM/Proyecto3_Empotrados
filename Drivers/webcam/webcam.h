@@ -18,7 +18,9 @@
 #include <signal.h>
 #include <arpa/inet.h>
 #include <jpeglib.h>
-
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 #define VIDEO_DEVICE "/dev/video0"
 #define WIDTH 640
