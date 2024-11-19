@@ -1,23 +1,18 @@
 #include "bmp.h"
 
-// Convert image to grayscale
+//Escala de grises
 void grayscale(int height, int width, RGBTRIPLE image[height][width]);
-
-// Convert image to sepia
+//Filtro sepia
 void sepia(int height, int width, RGBTRIPLE image[height][width]);
-
-// Reflect image horizontally
+//Reflejar horizontalmente 
 void reflect(int height, int width, RGBTRIPLE image[height][width]);
-
-// Blur image
-void blur(int height, int width, RGBTRIPLE image[height][width]);
-
-// Detect edges
+//Filtro de esquinas
 void edges(int height, int width, RGBTRIPLE image[height][width]);
-
-void blur2(int height, int width, RGBTRIPLE image[height][width]);
+//Filtro de blur
+void blur(int height, int width, RGBTRIPLE image[height][width]);
+//Filtro para pixelear imagenes
 void pixelate(int height, int width, RGBTRIPLE image[height][width], int blockSize);
+//Filtro de sharpen
 void sharpen(int height, int width, RGBTRIPLE image[height][width]);
-
-
+//Limitar los valores rgb
 int cap(int value);
