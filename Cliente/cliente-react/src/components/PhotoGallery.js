@@ -2,21 +2,24 @@ import React, { useState } from 'react';
 import './PhotoGallery.css';
 
 function PhotoGallery({ serverUrl }) {
-    const [photos, setPhotos] = useState([]);
-    const [selectedPhoto, setSelectedPhoto] = useState(null);
-    const [filters, setFilters] = useState([]);
-    const [filteredPhoto, setFilteredPhoto] = useState(null);
+    const [photos, setPhotos] = useState([]); // Lista de fotos cargadas
+    const [selectedPhoto, setSelectedPhoto] = useState(null); // Foto seleccionada para aplicar filtros
+    const [filters, setFilters] = useState([]); // Lista de filtros seleccionados
+    const [filteredPhoto, setFilteredPhoto] = useState(null); // Foto procesada por el servidor
 
+    // Manejar carga de imágenes desde el usuario
     const handleUpload = (e) => {
         const files = Array.from(e.target.files);
         const newPhotos = files.map((file) => URL.createObjectURL(file));
         setPhotos((prevPhotos) => [...prevPhotos, ...newPhotos]);
     };
 
+    // Seleccionar una foto para aplicar filtros
     const handlePhotoClick = (photo) => {
         setSelectedPhoto(photo);
     };
 
+    // Manejar selección de filtros
     const handleFilterChange = (e) => {
         const selectedFilter = e.target.value;
         if (filters.includes(selectedFilter)) {
@@ -26,35 +29,45 @@ function PhotoGallery({ serverUrl }) {
         }
     };
 
+    // Enviar imagen seleccionada y filtros al servidor
     const handleApplyFilters = async () => {
-        if (!selectedPhoto || filters.length === 0) return;
+        if (!selectedPhoto || filters.length === 0) {
+            console.error("No se seleccionaron filtros o imágenes.");
+            return;
+        }
 
-        const filterString = filters.join('');
+        const filterString = filters.join(''); // Combinar filtros seleccionados en un solo string
         const formData = new FormData();
-        formData.append('filter', filterString);
+        formData.append('filter', filterString); // Añadir filtros al FormData
 
+        // Obtener el blob de la imagen seleccionada
         const response = await fetch(selectedPhoto);
         const blob = await response.blob();
-        formData.append('image', blob, 'image.bmp');
 
-        const serverResponse = await fetch(`${serverUrl}/apply-filter`, {
-            method: 'POST',
-            body: formData,
-        });
+        formData.append('image', blob, 'image.bmp'); // Añadir la imagen al FormData
 
-        if (serverResponse.ok) {
-            const filteredBlob = await serverResponse.blob();
-            const filteredURL = URL.createObjectURL(filteredBlob);
-            setFilteredPhoto(filteredURL);
-        } else {
-            console.error('Error applying filters on server');
+        try {
+            const serverResponse = await fetch(`${serverUrl}/apply-filter`, {
+                method: 'POST',
+                body: formData, // Enviar FormData al servidor
+            });
+
+            if (serverResponse.ok) {
+                const filteredBlob = await serverResponse.blob();
+                const filteredURL = URL.createObjectURL(filteredBlob);
+                setFilteredPhoto(filteredURL);
+            } else {
+                console.error('Error al aplicar filtros en el servidor');
+            }
+        } catch (error) {
+            console.error('Error en la solicitud al servidor:', error);
         }
     };
 
     return (
         <div className="photo-gallery">
+            <h2>Photo Gallery</h2>
             <input type="file" multiple accept="image/*" onChange={handleUpload} />
-            <h2>Gallery</h2>
             <div className="carousel">
                 {photos.map((photo, index) => (
                     <img

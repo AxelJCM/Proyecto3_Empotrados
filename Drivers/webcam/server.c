@@ -64,21 +64,78 @@ void *stream_video(void *arg) {
     return NULL;
 }
 
-
-
-// Manejar solicitudes de imágenes con filtros
 void handle_photo_gallery_request(int client_sock, char *request) {
+    // Encuentra el inicio del cuerpo
     char *body = strstr(request, "\r\n\r\n") + 4;
-    char *filters = strstr(body, "filter=");
-    char *image_data = strstr(body, "image=");
+    if (!body) {
+        fprintf(stderr, "Cuerpo de la solicitud no encontrado.\n");
+        const char *response =
+            "HTTP/1.1 400 Bad Request\r\n"
+            "Access-Control-Allow-Origin: *\r\n\r\n";
+        send(client_sock, response, strlen(response), 0);
+        close(client_sock);
+        return;
+    }
 
+    // Detectar el boundary
+    char *boundary_start = strstr(request, "boundary=");
+    if (!boundary_start) {
+        fprintf(stderr, "Boundary no encontrado en los encabezados.\n");
+        const char *response =
+            "HTTP/1.1 400 Bad Request\r\n"
+            "Access-Control-Allow-Origin: *\r\n\r\n";
+        send(client_sock, response, strlen(response), 0);
+        close(client_sock);
+        return;
+    }
+    boundary_start += 9; // Salta "boundary="
+    char boundary[256];
+    snprintf(boundary, sizeof(boundary), "--%s", boundary_start);
+
+    // Encuentra y procesa la parte del filtro
+    char *filter_part = strstr(body, "name=\"filter\"");
+    if (!filter_part) {
+        fprintf(stderr, "Parte del filtro no encontrada.\n");
+        const char *response =
+            "HTTP/1.1 400 Bad Request\r\n"
+            "Access-Control-Allow-Origin: *\r\n\r\n";
+        send(client_sock, response, strlen(response), 0);
+        close(client_sock);
+        return;
+    }
+    filter_part = strstr(filter_part, "\r\n\r\n") + 4; // Salta encabezados
+    char filter_string[256];
+    sscanf(filter_part, "%s", filter_string);
+
+    // Encuentra y procesa la parte de la imagen
+    char *image_part = strstr(body, "name=\"image\"");
+    if (!image_part) {
+        fprintf(stderr, "Parte de la imagen no encontrada.\n");
+        const char *response =
+            "HTTP/1.1 400 Bad Request\r\n"
+            "Access-Control-Allow-Origin: *\r\n\r\n";
+        send(client_sock, response, strlen(response), 0);
+        close(client_sock);
+        return;
+    }
+    image_part = strstr(image_part, "\r\n\r\n") + 4; // Salta encabezados
+    char *image_end = strstr(image_part, boundary) - 2; // Encuentra el final de la imagen
+    if (!image_end) {
+        fprintf(stderr, "Fin de la imagen no encontrado.\n");
+        const char *response =
+            "HTTP/1.1 400 Bad Request\r\n"
+            "Access-Control-Allow-Origin: *\r\n\r\n";
+        send(client_sock, response, strlen(response), 0);
+        close(client_sock);
+        return;
+    }
+
+    // Guarda la imagen en un archivo
     FILE *input_file = fopen("temp_input.bmp", "wb");
-    fwrite(image_data, 1, strlen(image_data), input_file);
+    fwrite(image_part, 1, image_end - image_part, input_file);
     fclose(input_file);
 
-    char filter_string[256];
-    sscanf(filters, "filter=%s", filter_string);
-
+    // Ejecutar filtro
     pid_t pid = fork();
     if (pid == 0) {
         execl("./execute_filter", "execute_filter", filter_string, "temp_input.bmp", "temp_output.bmp", NULL);
@@ -86,6 +143,7 @@ void handle_photo_gallery_request(int client_sock, char *request) {
     }
     wait(NULL);
 
+    // Lee y envía la imagen procesada al cliente
     FILE *output_file = fopen("temp_output.bmp", "rb");
     if (!output_file) {
         perror("Error al abrir archivo de salida");
@@ -96,15 +154,12 @@ void handle_photo_gallery_request(int client_sock, char *request) {
         close(client_sock);
         return;
     }
-
     fseek(output_file, 0, SEEK_END);
     long output_size = ftell(output_file);
     rewind(output_file);
 
     char *output_data = malloc(output_size);
-    int result = fread(output_data, 1, output_size, output_file);
-    if (result < 0)
-        perror("error reading file");
+    fread(output_data, 1, output_size, output_file);
     fclose(output_file);
 
     char header[256];
