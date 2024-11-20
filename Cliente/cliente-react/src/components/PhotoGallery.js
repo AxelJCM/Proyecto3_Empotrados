@@ -2,17 +2,18 @@ import React, { useState, useEffect, useRef } from 'react';
 import './PhotoGallery.css';
 
 function PhotoGallery({ serverUrl }) {
-    const [photos, setPhotos] = useState([]); // Fotos en el servidor
-    const [previewPhotos, setPreviewPhotos] = useState([]); // Fotos cargadas localmente
-    const [selectedPhoto, setSelectedPhoto] = useState(null); // Foto seleccionada para filtro
-    const [filter, setFilter] = useState(''); // Filtro seleccionado
+    const [photos, setPhotos] = useState([]); // Fotos cargadas desde el servidor
+    const [previewPhotos, setPreviewPhotos] = useState([]); // Previsualizaciones locales
+    const [selectedPhoto, setSelectedPhoto] = useState(null); // Foto seleccionada para aplicar filtros
+    const [filters, setFilters] = useState([]); // Lista de filtros seleccionados
+    const [filteredPhoto, setFilteredPhoto] = useState(null); // Foto procesada
     const [slideshowActive, setSlideshowActive] = useState(false); // Estado del slideshow
     const [currentSlide, setCurrentSlide] = useState(0); // Índice de la imagen en el slideshow
     const [isFullscreen, setIsFullscreen] = useState(false); // Estado de pantalla completa
 
     const slideshowRef = useRef(null); // Referencia para el slideshow
 
-    // Cargar imágenes desde el servidor al iniciar
+    // Cargar imágenes desde el servidor
     useEffect(() => {
         const fetchPhotos = async () => {
             try {
@@ -30,47 +31,68 @@ function PhotoGallery({ serverUrl }) {
         fetchPhotos();
     }, [serverUrl]);
 
-    // Manejar la carga de nuevas imágenes para previsualización
+    // Manejar carga de imágenes desde el cliente
     const handleUpload = (e) => {
         const files = Array.from(e.target.files);
         const previews = files.map((file) => ({
             file,
             url: URL.createObjectURL(file),
         }));
-        setPreviewPhotos(previews); // Mostrar las imágenes cargadas localmente
+        setPreviewPhotos(previews);
     };
 
-    // Aplicar filtro y enviar la imagen al servidor
-    const applyFilter = async () => {
-        if (!selectedPhoto || !filter) {
-            alert('Selecciona una imagen y un filtro antes de aplicar');
+    // Seleccionar una foto para aplicar filtros
+    const handlePhotoClick = (photo) => {
+        setSelectedPhoto(photo);
+    };
+
+    // Manejar la selección de filtros
+    const handleFilterChange = (e) => {
+        const selectedFilter = e.target.value;
+        if (filters.includes(selectedFilter)) {
+            setFilters(filters.filter((f) => f !== selectedFilter));
+        } else {
+            setFilters([...filters, selectedFilter]);
+        }
+    };
+
+    // Enviar imagen seleccionada con múltiples filtros al servidor
+    const handleApplyFilters = async () => {
+        if (!selectedPhoto || filters.length === 0) {
+            alert('Selecciona una imagen y al menos un filtro antes de aplicar');
             return;
         }
 
+        const filterString = filters.join(','); // Convertir filtros en un string separado por comas
         const formData = new FormData();
-        formData.append('image', selectedPhoto.file);
-        formData.append('filter', filter);
+
+        if (selectedPhoto.file) {
+            // Imagen desde previsualización local
+            formData.append('image', selectedPhoto.file);
+        } else {
+            // Imagen desde el servidor
+            const response = await fetch(selectedPhoto);
+            const blob = await response.blob();
+            formData.append('image', blob, 'uploaded_image.jpg');
+        }
+
+        formData.append('filters', filterString); // Añadir filtros al FormData
 
         try {
-            const response = await fetch(`${serverUrl}/apply-filter`, {
+            const response = await fetch(`${serverUrl}/apply-filters`, {
                 method: 'POST',
                 body: formData,
             });
 
             if (response.ok) {
-                const data = await response.json();
-                const processedUrl = `${serverUrl}/images/${data.filename}`;
-
-                // Actualizar la galería con la nueva imagen procesada
-                setPhotos((prev) => [...prev, processedUrl]);
-                setPreviewPhotos([]); // Limpiar las previews locales
-                setSelectedPhoto(null); // Limpiar la selección
-                setFilter(''); // Limpiar el filtro
+                const filteredBlob = await response.blob();
+                const filteredURL = URL.createObjectURL(filteredBlob);
+                setFilteredPhoto(filteredURL); // Mostrar la imagen procesada
             } else {
-                console.error('Error al aplicar el filtro');
+                console.error('Error al aplicar filtros en el servidor');
             }
         } catch (error) {
-            console.error('Error al aplicar el filtro:', error);
+            console.error('Error al conectar con el servidor:', error);
         }
     };
 
@@ -125,7 +147,7 @@ function PhotoGallery({ serverUrl }) {
 
                 {/* Input para cargar imágenes */}
                 <input type="file" multiple accept="image/*" onChange={handleUpload} />
-                
+
                 {/* Mostrar previews locales */}
                 {previewPhotos.length > 0 && (
                     <div className="preview-gallery">
@@ -142,33 +164,52 @@ function PhotoGallery({ serverUrl }) {
                     </div>
                 )}
 
-                {/* Controles para filtros */}
-                {selectedPhoto && (
-                    <div className="filter-controls">
-                        <h3>Selecciona un filtro</h3>
-                        <select value={filter} onChange={(e) => setFilter(e.target.value)}>
-                            <option value="">--Seleccionar filtro--</option>
-                            <option value="grayscale">Grayscale</option>
-                            <option value="invert">Invert</option>
-                        </select>
-                        <button onClick={applyFilter}>Aplicar Filtro</button>
+                {/* Seleccionar filtros */}
+                <div className="filters">
+                    <h3>Seleccionar Filtros</h3>
+                    <div>
+                        <label>
+                            <input type="checkbox" value="-b" onChange={handleFilterChange} />
+                            Blur
+                        </label>
+                        <label>
+                            <input type="checkbox" value="-g" onChange={handleFilterChange} />
+                            Grayscale
+                        </label>
+                        <label>
+                            <input type="checkbox" value="-r" onChange={handleFilterChange} />
+                            Reflect
+                        </label>
+                        <label>
+                            <input type="checkbox" value="-s" onChange={handleFilterChange} />
+                            Sepia
+                        </label>
+                        <label>
+                            <input type="checkbox" value="-e" onChange={handleFilterChange} />
+                            Edges
+                        </label>
+                        <label>
+                            <input type="checkbox" value="-p" onChange={handleFilterChange} />
+                            Pixelate
+                        </label>
+                        <label>
+                            <input type="checkbox" value="-z" onChange={handleFilterChange} />
+                            Sharpen
+                        </label>
                     </div>
-                )}
+                    <button onClick={handleApplyFilters}>Aplicar Filtros</button>
+                </div>
 
                 {/* Galería de imágenes procesadas */}
                 <div className="gallery">
-                    {photos.length > 0 ? (
-                        photos.map((photo, index) => (
-                            <img
-                                key={index}
-                                src={photo}
-                                alt={`Imagen ${index}`}
-                                className="gallery-image"
-                            />
-                        ))
-                    ) : (
-                        <p>No hay imágenes procesadas para mostrar</p>
-                    )}
+                    {photos.map((photo, index) => (
+                        <img
+                            key={index}
+                            src={photo}
+                            alt={`Imagen ${index}`}
+                            className="gallery-image"
+                        />
+                    ))}
                 </div>
             </div>
 
@@ -191,6 +232,14 @@ function PhotoGallery({ serverUrl }) {
                     </div>
                 )}
             </div>
+
+            {/* Imagen procesada */}
+            {filteredPhoto && (
+                <div className="output">
+                    <h3>Imagen Procesada</h3>
+                    <img src={filteredPhoto} alt="Filtered" />
+                </div>
+            )}
         </div>
     );
 }
