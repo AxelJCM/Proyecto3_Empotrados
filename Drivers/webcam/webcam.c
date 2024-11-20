@@ -297,25 +297,7 @@ void *button_listener(void *arg)
             
         pthread_mutex_lock(&key_mutex);
 
-        if (button_pressed == 0x01 && recording == 0) // Start recording
-        {
-            if(start_video_recording() == -1) {
-                streaming = 0;
-                pthread_mutex_unlock(&key_mutex);
-                break;
-            }
-            recording = 1;
-        } 
-        else if (button_pressed == 0x01 && recording == 1)  // Stop recording
-        {
-            recording = 0;
-            if (finish_video_recording() == -1) {
-                streaming = 0;
-                pthread_mutex_unlock(&key_mutex);
-                break;
-            }
-        }
-        else if (button_pressed == 0x02)  // Take picture
+        if (button_pressed == 0x02)  // Take picture
         {
             take_picture = 1;
         }
@@ -373,7 +355,7 @@ int save_frame_as_jpg(CaptureBuffer buffer, int buf_size)
 }
 
 
-
+/*
 
 int start_video_recording()
 {
@@ -401,11 +383,11 @@ int finish_video_recording()
     printf("Recording stopped.\n");
     return 0;
 }
-
+*/
 
 
 //int capture_video(CaptureBuffer *buffers, int client_fd) 
-int capture_video(CaptureBuffer *buffers) 
+int capture_video(int *bytes_used) 
 {   
 
     /*
@@ -428,7 +410,9 @@ int capture_video(CaptureBuffer *buffers)
         return -1;
     }
     
-    
+    usleep(10000);
+
+    *bytes_used = buf.bytesused;
     
     // Write the MJPEG frame to file, buf.index indicates which buffer is ready with data
     //if (recording)

@@ -2,7 +2,7 @@
 
 # Compiler and flags
 CC = gcc
-CFLAGS = -Wall -O2
+CFLAGS = -Wall -O2 -Iinclude
 
 # Target executable
 TARGET = webcam
