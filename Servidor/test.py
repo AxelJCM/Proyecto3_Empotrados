@@ -1,113 +1,97 @@
-from flask import Flask, request, jsonify, send_file, Response
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
-from werkzeug.security import check_password_hash, generate_password_hash
+import os
 import cv2
 import numpy as np
-import io
 from PIL import Image
-import jwt
-import datetime
+import re
 
 app = Flask(__name__)
 CORS(app)
 
-users_db = {
-    "user": generate_password_hash("1234")
-}
+# Ajustar la ruta de la carpeta de imágenes procesadas
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # Directorio base del archivo actual
+UPLOAD_FOLDER = os.path.join(BASE_DIR, '..', 'uploaded_images')  # Carpeta en el nivel raíz
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
 
-SECRET_KEY = "your_secret_key_here"
+# Endpoint para subir imágenes
+@app.route('/upload-images', methods=['POST'])
+def upload_images():
+    if 'images' not in request.files:
+        return jsonify({'error': 'No files provided'}), 400
 
-# Global variable to store the current filter
-current_filter = "none"
+    uploaded_files = request.files.getlist('images')
+    saved_files = []
+    for file in uploaded_files:
+        # Normalizar el nombre del archivo
+        original_filename = file.filename
+        normalized_filename = re.sub(r'[^\w\-_\.]', '_', original_filename)
+        if not normalized_filename.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp')):
+            normalized_filename += '.jpg'  # Asignar extensión predeterminada
+        filepath = os.path.join(UPLOAD_FOLDER, normalized_filename)
+        
+        file.save(filepath)
+        saved_files.append(normalized_filename)
 
-# Login endpoint
-@app.route('/login', methods=['POST'])
-def login():
-    data = request.get_json()
-    username = data.get('username')
-    password = data.get('password')
+        print(f"Imagen recibida: {original_filename}")
+        print(f"Imagen guardada como: {normalized_filename}")
 
-    # Validate credentials
-    if username in users_db and check_password_hash(users_db[username], password):
-        # Generate token
-        token = jwt.encode({
-            'username': username,
-            'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=1)
-        }, SECRET_KEY, algorithm='HS256')
+    return jsonify(saved_files), 200
 
-        return jsonify({"token": token})
-    else:
-        return jsonify({"message": "Invalid credentials"}), 401
+# Endpoint para listar las imágenes disponibles
+@app.route('/list-images', methods=['GET'])
+def list_images():
+    try:
+        images = os.listdir(UPLOAD_FOLDER)
+        return jsonify(images), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
-# Endpoint to update the current filter type
-@app.route('/set-filter', methods=['POST'])
-def set_filter():
-    global current_filter
-    filter_type = request.json.get('filter')
-    current_filter = filter_type
-    return {"message": "Filter updated successfully"}, 200
+# Endpoint para servir imágenes estáticas
+@app.route('/images/<filename>', methods=['GET'])
+def get_image(filename):
+    filepath = os.path.join(UPLOAD_FOLDER, filename)
+    if not os.path.exists(filepath):
+        print(f"Archivo no encontrado: {filepath}")
+        return jsonify({'error': 'Archivo no encontrado'}), 404
+    print(f"Sirviendo archivo desde: {filepath}")
+    return send_from_directory(UPLOAD_FOLDER, filename)
 
-# Apply filter to image endpoint
+# Endpoint para aplicar filtro y guardar la imagen procesada
 @app.route('/apply-filter', methods=['POST'])
 def apply_filter():
-    # Obtener el filtro que se quiere aplicar
-    filter_type = request.form.get('filter')
+    if 'image' not in request.files or 'filter' not in request.form:
+        return jsonify({'error': 'Image or filter not provided'}), 400
 
-    # Leer la imagen desde la solicitud
+    # Leer la imagen y el filtro
     file = request.files['image']
+    filter_type = request.form['filter']
     img = Image.open(file.stream)
     img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
 
-    # Aplicar el filtro solicitado
+    # Normalizar el nombre del archivo
+    original_filename = file.filename
+    normalized_filename = re.sub(r'[^\w\-_\.]', '_', original_filename)
+    if not normalized_filename.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp')):
+        normalized_filename += '.jpg'
+    processed_filename = f"processed_{normalized_filename}"
+    processed_filepath = os.path.join(UPLOAD_FOLDER, processed_filename)
+
+    # Aplicar el filtro
     if filter_type == 'grayscale':
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    elif filter_type == 'sepia':
-        sepia_filter = np.array([[0.272, 0.534, 0.131],
-                                 [0.349, 0.686, 0.168],
-                                 [0.393, 0.769, 0.189]])
-        img = cv2.transform(img, sepia_filter)
-        img = np.clip(img, 0, 255)
+        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)  # Convertir de nuevo a 3 canales
     elif filter_type == 'invert':
         img = cv2.bitwise_not(img)
 
-    # Convertir de vuelta a imagen
-    _, img_encoded = cv2.imencode('.jpg', img)
-    return send_file(io.BytesIO(img_encoded), mimetype='image/jpeg')
+    # Guardar la imagen procesada
+    cv2.imwrite(processed_filepath, img)
 
-# Video streaming endpoint
-def generate_frames():
-    global current_filter
-    cap = cv2.VideoCapture(0)  # Use the default camera
+    print(f"Aplicando filtro: {filter_type} a la imagen: {normalized_filename}")
+    print(f"Imagen procesada guardada como: {processed_filename}")
 
-    while True:
-        success, frame = cap.read()
-        if not success:
-            break
-
-        # Apply filter based on the current filter setting
-        if current_filter == 'grayscale':
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)  # Convert back to BGR for consistency
-        elif current_filter == 'sepia':
-            sepia_filter = np.array([[0.272, 0.534, 0.131],
-                                     [0.349, 0.686, 0.168],
-                                     [0.393, 0.769, 0.189]])
-            frame = cv2.transform(frame, sepia_filter)
-            frame = np.clip(frame, 0, 255)
-        elif current_filter == 'invert':
-            frame = cv2.bitwise_not(frame)
-
-        # Encode frame as JPEG
-        ret, buffer = cv2.imencode('.jpg', frame)
-        frame = buffer.tobytes()
-
-        # Use multipart format to stream the frames
-        yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-
-@app.route('/video-feed')
-def video_feed():
-    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+    return jsonify({'filename': processed_filename}), 200
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
