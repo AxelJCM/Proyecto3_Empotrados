@@ -92,7 +92,7 @@ void handle_photo_gallery_request(int client_sock, char *request) {
     char boundary[256];
     snprintf(boundary, sizeof(boundary), "--%s", boundary_start);
 
-    // Encuentra y procesa la parte del filtro
+    // Procesar la parte del filtro
     char *filter_part = strstr(body, "name=\"filter\"");
     if (!filter_part) {
         fprintf(stderr, "Parte del filtro no encontrada.\n");
@@ -107,7 +107,7 @@ void handle_photo_gallery_request(int client_sock, char *request) {
     char filter_string[256];
     sscanf(filter_part, "%s", filter_string);
 
-    // Encuentra y procesa la parte de la imagen
+    // Procesar la parte de la imagen
     char *image_part = strstr(body, "name=\"image\"");
     if (!image_part) {
         fprintf(stderr, "Parte de la imagen no encontrada.\n");
@@ -130,7 +130,18 @@ void handle_photo_gallery_request(int client_sock, char *request) {
         return;
     }
 
-    // Guarda la imagen en un archivo
+    // Verifica si la imagen es válida
+    if (strncmp(image_part, "BM", 2) != 0) {
+        fprintf(stderr, "La imagen no tiene un encabezado válido BMP.\n");
+        const char *response =
+            "HTTP/1.1 400 Bad Request\r\n"
+            "Access-Control-Allow-Origin: *\r\n\r\n";
+        send(client_sock, response, strlen(response), 0);
+        close(client_sock);
+        return;
+    }
+
+    // Guardar la imagen en un archivo
     FILE *input_file = fopen("temp_input.bmp", "wb");
     fwrite(image_part, 1, image_end - image_part, input_file);
     fclose(input_file);
@@ -143,7 +154,7 @@ void handle_photo_gallery_request(int client_sock, char *request) {
     }
     wait(NULL);
 
-    // Lee y envía la imagen procesada al cliente
+    // Leer la imagen procesada
     FILE *output_file = fopen("temp_output.bmp", "rb");
     if (!output_file) {
         perror("Error al abrir archivo de salida");

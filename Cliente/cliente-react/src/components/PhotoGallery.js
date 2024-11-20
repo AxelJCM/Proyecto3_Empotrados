@@ -3,23 +3,23 @@ import './PhotoGallery.css';
 
 function PhotoGallery({ serverUrl }) {
     const [photos, setPhotos] = useState([]); // Lista de fotos cargadas
-    const [selectedPhoto, setSelectedPhoto] = useState(null); // Foto seleccionada para aplicar filtros
-    const [filters, setFilters] = useState([]); // Lista de filtros seleccionados
-    const [filteredPhoto, setFilteredPhoto] = useState(null); // Foto procesada por el servidor
+    const [selectedPhoto, setSelectedPhoto] = useState(null); // Foto seleccionada para filtros
+    const [filters, setFilters] = useState([]); // Filtros seleccionados
+    const [filteredPhoto, setFilteredPhoto] = useState(null); // Foto procesada
 
-    // Manejar carga de imágenes desde el usuario
+    // Cargar imágenes desde el input
     const handleUpload = (e) => {
         const files = Array.from(e.target.files);
         const newPhotos = files.map((file) => URL.createObjectURL(file));
         setPhotos((prevPhotos) => [...prevPhotos, ...newPhotos]);
     };
 
-    // Seleccionar una foto para aplicar filtros
+    // Seleccionar una imagen
     const handlePhotoClick = (photo) => {
         setSelectedPhoto(photo);
     };
 
-    // Manejar selección de filtros
+    // Seleccionar o deseleccionar filtros
     const handleFilterChange = (e) => {
         const selectedFilter = e.target.value;
         if (filters.includes(selectedFilter)) {
@@ -29,27 +29,33 @@ function PhotoGallery({ serverUrl }) {
         }
     };
 
-    // Enviar imagen seleccionada y filtros al servidor
+    // Enviar la imagen seleccionada y filtros al servidor
     const handleApplyFilters = async () => {
         if (!selectedPhoto || filters.length === 0) {
-            console.error("No se seleccionaron filtros o imágenes.");
+            console.error("Debe seleccionar una imagen y al menos un filtro.");
             return;
         }
 
-        const filterString = filters.join(''); // Combinar filtros seleccionados en un solo string
+        const filterString = filters.join(''); // Combinar filtros seleccionados
         const formData = new FormData();
-        formData.append('filter', filterString); // Añadir filtros al FormData
+        formData.append('filter', filterString);
 
         // Obtener el blob de la imagen seleccionada
         const response = await fetch(selectedPhoto);
         const blob = await response.blob();
 
-        formData.append('image', blob, 'image.bmp'); // Añadir la imagen al FormData
+        // Añadir la imagen al FormData
+        formData.append('image', blob, 'image.bmp');
+
+        // Debug: Verifica los datos que se están enviando
+        for (let pair of formData.entries()) {
+            console.log(`${pair[0]}: ${pair[1]}`);
+        }
 
         try {
             const serverResponse = await fetch(`${serverUrl}/apply-filter`, {
                 method: 'POST',
-                body: formData, // Enviar FormData al servidor
+                body: formData, // Enviar FormData
             });
 
             if (serverResponse.ok) {
@@ -83,31 +89,31 @@ function PhotoGallery({ serverUrl }) {
                 <h3>Select Filters</h3>
                 <div>
                     <label>
-                        <input type="checkbox" value="b" onChange={handleFilterChange} />
+                        <input type="checkbox" value="-b" onChange={handleFilterChange} />
                         Blur
                     </label>
                     <label>
-                        <input type="checkbox" value="g" onChange={handleFilterChange} />
+                        <input type="checkbox" value="-g" onChange={handleFilterChange} />
                         Grayscale
                     </label>
                     <label>
-                        <input type="checkbox" value="r" onChange={handleFilterChange} />
+                        <input type="checkbox" value="-r" onChange={handleFilterChange} />
                         Reflect
                     </label>
                     <label>
-                        <input type="checkbox" value="s" onChange={handleFilterChange} />
+                        <input type="checkbox" value="-s" onChange={handleFilterChange} />
                         Sepia
                     </label>
                     <label>
-                        <input type="checkbox" value="e" onChange={handleFilterChange} />
+                        <input type="checkbox" value="-e" onChange={handleFilterChange} />
                         Edges
                     </label>
                     <label>
-                        <input type="checkbox" value="p" onChange={handleFilterChange} />
+                        <input type="checkbox" value="-p" onChange={handleFilterChange} />
                         Pixelate
                     </label>
                     <label>
-                        <input type="checkbox" value="z" onChange={handleFilterChange} />
+                        <input type="checkbox" value="-z" onChange={handleFilterChange} />
                         Sharpen
                     </label>
                 </div>
