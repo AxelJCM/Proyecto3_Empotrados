@@ -21,6 +21,9 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <ctype.h>
+
+
 
 #define VIDEO_DEVICE "/dev/video0"
 #define WIDTH 640
@@ -58,16 +61,16 @@ void close_webcam(CaptureBuffer *buffers);
 void close_gamepad();
 
 // Capture and save video function
-int capture_video(CaptureBuffer *buffers);
+int capture_video(int *bytes_used);
 
 // Saves a frame as a .jpg file
 int save_frame_as_jpg(CaptureBuffer buffer, int buf_size);
 
 // Creates and opens file to save the recorded video
-int start_video_recording();
+//int start_video_recording();
 
 // Closes the file and converts the video from MJPEG to AVI
-int finish_video_recording();
+//int finish_video_recording();
 
 
 
