@@ -26,18 +26,20 @@
 
 
 #define VIDEO_DEVICE "/dev/video0"
+#define CONTROL_DEVICE "/dev/gamepad_dev"
 #define WIDTH 640
 #define HEIGHT 480
 #define FPS 30
 #define VIDEO_OUT_DIR "frames/video.mjpeg"
-#define IMAGE_OUT_DIR "frames/image.jpg"
+#define IMAGE_OUT_DIR "frames/photo.bmp"
+#define MJPEG_QUALITY 50
 
 #define PORT 8080
 #define IP "192.168.18.47"
 #define FRAME_BOUNDARY "--frame\r\n"
 #define FRAME_HEADER "Content-Type: image/jpeg\r\nContent-Length: %d\r\n\r\n"
 
-#define CONTROL_DEVICE "/dev/gamepad_dev"
+
 
 typedef struct {
     void *start;
@@ -48,29 +50,26 @@ typedef struct {
 // Initializes the webcam device and prepares it for capturing
 int init_webcam(CaptureBuffer **buffers);
 
-// Initializes the gamepad device and starts a thread to listen for button presses
-int init_gamepad();
-
-// Thread function for gamepad button handling
-void *button_listener(void *arg);
-
 // Closes the webcam device
 void close_webcam(CaptureBuffer *buffers);
 
-// Closes the gamepad device
-void close_gamepad();
-
 // Capture and save video function
-int capture_video(int *bytes_used);
+int capture_video_frame(int *bytes_used);
 
-// Saves a frame as a .jpg file
-int save_frame_as_jpg(CaptureBuffer buffer, int buf_size);
+// Saves a frame as a .bmp file
+int save_frame_as_bmp(unsigned char *rgb_data);
+
+// Decodes MJPEG to RGB
+unsigned char* decode_mjpeg_to_rgb(unsigned char *mjpeg_data, size_t mjpeg_size);
+
+// Encodes RGB to MJPEG
+unsigned char* encode_rgb_to_mjpeg(unsigned char *rgb_data, int *jpeg_size);
 
 // Creates and opens file to save the recorded video
-//int start_video_recording();
+int start_video_recording();
 
 // Closes the file and converts the video from MJPEG to AVI
-//int finish_video_recording();
+int finish_video_recording();
 
 
 

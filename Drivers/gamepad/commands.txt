@@ -35,7 +35,7 @@ lsusb -s 1:8 -v
 
 # ssh copy files
 scp -r /home/sfv/Proyecto3_Empotrados/Drivers pi@192.168.18.47:/home/pi
-scp -r /home/sfv/Proyecto3_Empotrados/Drivers/webcam pi@192.168.18.47:/home/pi/Drivers
+scp -r /home/sfv/Proyecto3_Empotrados/Drivers/stream_server pi@192.168.18.47:/home/pi/Drivers
 scp -r pi@192.168.18.47:/home/pi/Drivers/webcam/frames /home/sfv
 
 

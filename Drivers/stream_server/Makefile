@@ -5,17 +5,16 @@ CC = gcc
 CFLAGS = -Wall -O2 -Iinclude
 
 # Target executable
-TARGET = webcam
+TARGET = stream
 
 # Source files
-SRCS = server.c webcam.c
+SRCS = server.c webcam.c filtros.c
 
 # Output object files
 OBJS = $(SRCS:.c=.o)
 
 # Libraries
-#LIBS = -lv4l2   #$(LIBS)
-LIBS = -ljpeg
+LIBS = -ljpeg -lm -fopenmp
 
 # Compile target
 all: $(TARGET)
@@ -25,7 +24,7 @@ $(TARGET): $(OBJS)
 
 # Compile .c files into .o files
 %.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@ $(LIBS)
 
 # Clean up build files
 clean:
