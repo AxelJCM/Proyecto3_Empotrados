@@ -4,7 +4,7 @@ import './PhotoGallery.css';
 function PhotoGallery({ serverUrl }) {
     const [photos, setPhotos] = useState([]); // Fotos cargadas desde el servidor
     const [previewPhotos, setPreviewPhotos] = useState([]); // Previsualizaciones locales
-    const [selectedPhoto, setSelectedPhoto] = useState(null); // Foto seleccionada para aplicar filtros
+    const [selectedPhoto, setSelectedPhoto] = useState(null); // Foto seleccionada
     const [filters, setFilters] = useState([]); // Lista de filtros seleccionados
     const [filteredPhoto, setFilteredPhoto] = useState(null); // Foto procesada
     const [slideshowActive, setSlideshowActive] = useState(false); // Estado del slideshow
@@ -13,7 +13,7 @@ function PhotoGallery({ serverUrl }) {
 
     const slideshowRef = useRef(null); // Referencia para el slideshow
 
-    // Cargar imágenes desde el servidor
+    // Cargar imágenes desde el servidor periódicamente
     useEffect(() => {
         const fetchPhotos = async () => {
             try {
@@ -28,7 +28,13 @@ function PhotoGallery({ serverUrl }) {
                 console.error('Error al conectar con el servidor:', error);
             }
         };
+
+        // Llamar a fetchPhotos inicialmente y luego cada 5 segundos
         fetchPhotos();
+        const interval = setInterval(fetchPhotos, 5000);
+
+        // Limpiar el intervalo al desmontar el componente
+        return () => clearInterval(interval);
     }, [serverUrl]);
 
     // Manejar carga de imágenes desde el cliente
