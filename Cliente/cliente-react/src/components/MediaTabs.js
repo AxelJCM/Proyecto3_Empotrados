@@ -3,7 +3,7 @@ import VideoStream from './VideoStream';
 import PhotoGallery from './PhotoGallery';
 import './MediaTabs.css';
 
-function MediaTabs({ serverUrl }) {
+function MediaTabs({ serverUrl, serverUrl2 }) {
     const [activeTab, setActiveTab] = useState('video');
 
     return (
@@ -17,7 +17,7 @@ function MediaTabs({ serverUrl }) {
                 </button>
             </div>
             <div className="tabs-content">
-                {activeTab === 'video' && <VideoStream serverUrl={serverUrl} />}
+                {activeTab === 'video' && <VideoStream serverUrl2={serverUrl2} />}
                 {activeTab === 'gallery' && <PhotoGallery serverUrl={serverUrl} />}
             </div>
         </div>

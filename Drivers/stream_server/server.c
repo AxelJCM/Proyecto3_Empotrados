@@ -19,7 +19,6 @@ unsigned char* send_frame;
 unsigned char take_picture;
 char filter = 0;
 
-
 // Listens to gamepad button presses
 void *button_listener(void *arg) 
 {

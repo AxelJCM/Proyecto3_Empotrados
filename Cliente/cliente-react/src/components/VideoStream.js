@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
 import './VideoStream.css';
 
-function VideoStream({ serverUrl }) {
+function VideoStream({ serverUrl2 }) {
     const [streaming, setStreaming] = useState(false);
 
     const startStream = async () => {
-        await fetch(`${serverUrl}/start`, { method: 'POST' });
+        await fetch(`${serverUrl2}/start`, { method: 'POST' });
         setStreaming(true);
     };
 
     const stopStream = async () => {
-        await fetch(`${serverUrl}/stop`, { method: 'POST' });
+        await fetch(`${serverUrl2}/stop`, { method: 'POST' });
         setStreaming(false);
     };
 
@@ -20,7 +20,7 @@ function VideoStream({ serverUrl }) {
             <div>
                 {streaming ? (
                     <img
-                        src={`${serverUrl}/video-stream?ts=${new Date().getTime()}`}
+                        src={`${serverUrl2}/video-stream?ts=${new Date().getTime()}`}
                         alt="Video Stream"
                         style={{ maxWidth: '100%' }}
                     />

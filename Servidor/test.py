@@ -15,7 +15,7 @@ if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
 # Ruta al ejecutable (para aplicar filtros en C)
-EXECUTABLE_PATH = os.path.join(BASE_DIR, 'control', 'src', 'execute_filter')
+EXECUTABLE_PATH = os.path.join(BASE_DIR, 'control', 'execute_filter')
 
 # Función para convertir imágenes a BMP
 def convert_to_bmp(input_file, output_file):

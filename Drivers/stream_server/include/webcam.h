@@ -31,7 +31,7 @@
 #define HEIGHT 480
 #define FPS 30
 #define VIDEO_OUT_DIR "frames/video.mjpeg"
-#define IMAGE_OUT_DIR "frames/photo.bmp"
+#define IMAGE_OUT_DIR "/home/pi/uploaded_images/photo.bmp"
 #define MJPEG_QUALITY 50
 
 #define PORT 8080

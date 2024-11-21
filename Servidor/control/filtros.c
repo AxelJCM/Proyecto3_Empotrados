@@ -1,7 +1,8 @@
 #include "filtros.h"
 #include <stdio.h>
 #include <math.h>
-#include <omp.h>  
+#include <omp.h> 
+#include <stdlib.h>
 
 // Convierte la imagen a escala de grises
 void grayscale(int height, int width, RGBTRIPLE image[height][width])
@@ -112,14 +113,23 @@ void reflect(int height, int width, RGBTRIPLE image[height][width])
 // Detecta bordes en la imagen usando Sobel
 void edges(int height, int width, RGBTRIPLE image[height][width])
 {
+    double start_time = omp_get_wtime();
+
     // Definición del Kernel de Sobel 
     int Gx[3][3] = {{-1, 0, 1}, {-2, 0, 2}, {-1, 0, 1}}, Gy[3][3] = {{-1, -2, -1}, {0, 0, 0}, {1, 2, 1}};
-    // Copia la imagen original en un buffer temporal
-    RGBTRIPLE temp[height][width];
+    
+    // Reservar memoria para almacenar la imagen completa
+    RGBTRIPLE(*temp)[width] = calloc(height, width * sizeof(RGBTRIPLE));
+    if (temp == NULL)
+    {
+        fprintf(stderr, "Not enough memory to store temp image.\n");
+        return; // Error por falta de memoria
+    }
+
+    #pragma omp parallel for collapse(2)
     for (int i = 0; i < height; i++)
         for (int j = 0; j < width; j++)
             temp[i][j] = image[i][j];
-    double start_time = omp_get_wtime();
 
 
     #pragma omp parallel for collapse(2)
@@ -155,6 +165,8 @@ void edges(int height, int width, RGBTRIPLE image[height][width])
     double end_time = omp_get_wtime();
     double time_taken = end_time - start_time;
     printf("Tiempo de ejecución Borde Sobel: %f segundos\n", time_taken);
+
+    free(temp);
     return;
 }
 // Función auxiliar para limitar los valores entre 0 y 255
