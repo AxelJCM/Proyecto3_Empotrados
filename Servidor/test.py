@@ -14,7 +14,7 @@ if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
 # Ruta al ejecutable
-EXECUTABLE_PATH = os.path.join(BASE_DIR, 'control', 'src', 'execute_filter')
+EXECUTABLE_PATH = os.path.join(BASE_DIR, 'control', 'execute_filter')
 
 # Endpoint para subir imágenes
 @app.route('/upload-images', methods=['POST'])

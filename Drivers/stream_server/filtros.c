@@ -31,9 +31,9 @@ void sepia(int height, int width, RGBTRIPLE image[height][width])
         for (int j = 0; j < width; j++)
         {
             //Inicializa los valores RGB del píxel
-            float blue = image[i][j].rgbtBlue;
+            float blue = image[i][j].rgbtRed;
             float green = image[i][j].rgbtGreen;
-            float red = image[i][j].rgbtRed;
+            float red = image[i][j].rgbtBlue;
 
             // Calcula los valores sepia
             float sepiaRed = round(.393 * red + .769 * green + .189 * blue);
@@ -54,9 +54,9 @@ void sepia(int height, int width, RGBTRIPLE image[height][width])
                 sepiaGreen = 255;
             }
             // Asigna los valores sepia al píxel
-            image[i][j].rgbtBlue = sepiaBlue;
+            image[i][j].rgbtBlue = sepiaRed;
             image[i][j].rgbtGreen = sepiaGreen;
-            image[i][j].rgbtRed = sepiaRed;
+            image[i][j].rgbtRed = sepiaBlue;
         }
     }
 }
