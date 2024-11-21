@@ -13,6 +13,60 @@
     box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
 }
 
+/* Ajustar la previsualización */
+.preview-gallery {
+    margin-top: 20px;
+    padding: 20px;
+    border: 1px dashed #ddd;
+    border-radius: 5px;
+    height: 300px;
+    max-height: 400px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+.preview-title {
+    font-size: 18px;
+    font-weight: bold;
+    color: #ffffff;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.preview-images {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    gap: 10px;
+    overflow: hidden;
+}
+
+.preview-container {
+    position: relative;
+    display: inline-block;
+    border: 2px solid #ccc;
+    border-radius: 5px;
+    padding: 5px;
+    box-shadow: 0px 4px 6px rgba(170, 39, 39, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.preview-container:hover {
+    transform: scale(1.1); /* Ampliar ligeramente al pasar el ratón */
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3); /* Sombra al pasar el ratón */
+}
+
+.preview-image {
+    max-width: 100%;
+    max-height: 250px;
+    object-fit: contain; /* Ajusta la imagen dentro del contenedor */
+    border-radius: 5px;
+}
+
+/* Galería */
 .gallery {
     display: flex;
     flex-wrap: wrap;
@@ -41,6 +95,7 @@
     transform: scale(1.1); /* Ligeramente más grande al estar seleccionada */
 }
 
+/* Slideshow */
 .slideshow {
     margin: 20px 0;
     text-align: center;
@@ -61,7 +116,7 @@
     object-fit: contain; /* Mantener la proporción de la imagen dentro de la pantalla */
     border: none; /* Eliminar bordes en pantalla completa */
     box-shadow: none; /* Eliminar sombras en pantalla completa */
-    margin: 0; /* Eliminar cualquier margen que pueda desalinear la imagen */
+    margin: 0; /* Eliminar cualquier margen */
     padding: 0; /* Eliminar cualquier padding */
     display: block; /* Asegurar que sea un bloque */
 }

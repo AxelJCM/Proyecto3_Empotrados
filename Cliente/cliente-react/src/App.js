@@ -3,7 +3,7 @@ import MediaTabs from './components/MediaTabs';
 import './App.css';
 
 const App = () => {
-    const serverUrl = 'http://192.168.18.47:5000'; // Conexión local
+    const serverUrl = 'http://localhost:5000'; // Conexión local
 
     return (
         <div>

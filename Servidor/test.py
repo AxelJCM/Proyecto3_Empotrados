@@ -106,9 +106,17 @@ def apply_filters():
         print(f"Error general al llamar al ejecutable: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-# Endpoint para eliminar una imagen
-@app.route('/delete-image/<filename>', methods=['DELETE'])
+@app.route('/delete-image/<filename>', methods=['OPTIONS', 'DELETE'])
 def delete_image(filename):
+    # Manejo de la solicitud OPTIONS (CORS preflight)
+    if request.method == 'OPTIONS':
+        response = jsonify({'message': 'CORS preflight passed'})
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        response.headers.add("Access-Control-Allow-Methods", "DELETE, OPTIONS")
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        return response, 200
+
+    # Manejo de la solicitud DELETE
     filepath = os.path.join(UPLOAD_FOLDER, filename)
     if not os.path.exists(filepath):
         return jsonify({'error': 'Archivo no encontrado'}), 404

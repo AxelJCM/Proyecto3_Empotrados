@@ -175,10 +175,19 @@ function PhotoGallery({ serverUrl }) {
             <div className="gallery-panel">
                 <h2>Galería de Imágenes</h2>
                 <input type="file" multiple accept="image/*" onChange={handleUpload} />
-                <div className="gallery-actions">
-                    <button onClick={handleDeletePhoto} disabled={!selectedPhoto}>
-                        Eliminar Imagen Seleccionada
-                    </button>
+                <div className="preview-gallery">
+                    <h3 className="preview-title">Previsualización de Imágenes</h3>
+                    <div className="preview-images">
+                        {previewPhotos.map((photo, index) => (
+                            <div key={index} className="preview-container">
+                                <img
+                                    src={photo.url}
+                                    alt={`Preview ${index}`}
+                                    className="preview-image"
+                                />
+                            </div>
+                        ))}
+                    </div>
                 </div>
                 <div className="filters">
                     <h3>Seleccionar Filtros</h3>
@@ -203,6 +212,11 @@ function PhotoGallery({ serverUrl }) {
                             onClick={() => handlePhotoClick(photo)}
                         />
                     ))}
+                </div>
+                <div className="gallery-actions">
+                    <button onClick={handleDeletePhoto} disabled={!selectedPhoto}>
+                        Eliminar Imagen Seleccionada
+                    </button>
                 </div>
             </div>
 
