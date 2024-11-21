@@ -1,8 +1,9 @@
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import os
-import subprocess
 import re
+from PIL import Image
+import subprocess
 
 app = Flask(__name__)
 CORS(app)
@@ -13,32 +14,19 @@ UPLOAD_FOLDER = os.path.join(BASE_DIR, '..', 'uploaded_images')  # Carpeta para 
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
-# Ruta al ejecutable
-EXECUTABLE_PATH = os.path.join(BASE_DIR, 'control', 'execute_filter')
+# Ruta al ejecutable (para aplicar filtros en C)
+EXECUTABLE_PATH = os.path.join(BASE_DIR, 'control', 'src', 'execute_filter')
 
-# Endpoint para subir imágenes
-@app.route('/upload-images', methods=['POST'])
-def upload_images():
-    if 'images' not in request.files:
-        return jsonify({'error': 'No files provided'}), 400
-
-    uploaded_files = request.files.getlist('images')
-    saved_files = []
-    for file in uploaded_files:
-        # Normalizar el nombre del archivo
-        original_filename = file.filename
-        normalized_filename = re.sub(r'[^\w\-_\.]', '_', original_filename)
-        if not normalized_filename.lower().endswith(('.bmp')):
-            normalized_filename += '.bmp'  # Convertir a BMP si no tiene extensión válida
-        filepath = os.path.join(UPLOAD_FOLDER, normalized_filename)
-        
-        file.save(filepath)
-        saved_files.append(normalized_filename)
-
-        print(f"Imagen recibida: {original_filename}")
-        print(f"Imagen guardada como: {normalized_filename}")
-
-    return jsonify(saved_files), 200
+# Función para convertir imágenes a BMP
+def convert_to_bmp(input_file, output_file):
+    try:
+        with Image.open(input_file) as img:
+            img = img.convert('RGB')  # Convertir a formato compatible
+            img.save(output_file, 'BMP')
+            print(f"Imagen convertida a BMP: {output_file}")
+    except Exception as e:
+        print(f"Error al convertir la imagen a BMP: {str(e)}")
+        raise e
 
 # Endpoint para listar las imágenes disponibles
 @app.route('/list-images', methods=['GET'])
@@ -69,16 +57,24 @@ def apply_filters():
     file = request.files['image']
     filters = request.form['filters']  # Filtros separados por comas, por ejemplo: "-z,-b"
 
-    # Normalizar el nombre del archivo
-    original_filename = file.filename
-    normalized_filename = re.sub(r'[^\w\-_\.]', '_', original_filename)
-    if not normalized_filename.lower().endswith('.bmp'):
-        normalized_filename += '.bmp'
+    # Normalizar el nombre del archivo (sin la extensión original)
+    original_filename = os.path.splitext(file.filename)[0]  # Remover extensión
+    normalized_filename = re.sub(r'[^\w\-_\.]', '_', original_filename) + '.bmp'
 
+    # Ruta para guardar la imagen BMP
     input_filepath = os.path.join(UPLOAD_FOLDER, normalized_filename)
-    file.save(input_filepath)
 
-    # Ruta para el archivo de salida
+    # Convertir la imagen cargada a BMP
+    temp_filepath = os.path.join(UPLOAD_FOLDER, f"temp_{file.filename}")
+    file.save(temp_filepath)  # Guardar temporalmente la imagen
+    try:
+        convert_to_bmp(temp_filepath, input_filepath)  # Convertir a BMP
+        os.remove(temp_filepath)  # Eliminar el archivo temporal
+    except Exception as e:
+        os.remove(temp_filepath)  # Limpiar el archivo temporal en caso de error
+        return jsonify({'error': f'Error al convertir la imagen a BMP: {str(e)}'}), 500
+
+    # Ruta para el archivo de salida procesado
     processed_filename = f"processed_{normalized_filename}"
     output_filepath = os.path.join(UPLOAD_FOLDER, processed_filename)
 
@@ -92,6 +88,12 @@ def apply_filters():
 
         print("Filtro aplicado correctamente!")
         print("Salida del ejecutable:", result.stdout)
+
+        # Eliminar el archivo original después de procesarlo
+        if os.path.exists(input_filepath):
+            os.remove(input_filepath)
+            print(f"Imagen original eliminada: {input_filepath}")
+
         return jsonify({'filename': processed_filename}), 200
 
     except subprocess.CalledProcessError as e:
@@ -102,6 +104,21 @@ def apply_filters():
 
     except Exception as e:
         print(f"Error general al llamar al ejecutable: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+# Endpoint para eliminar una imagen
+@app.route('/delete-image/<filename>', methods=['DELETE'])
+def delete_image(filename):
+    filepath = os.path.join(UPLOAD_FOLDER, filename)
+    if not os.path.exists(filepath):
+        return jsonify({'error': 'Archivo no encontrado'}), 404
+
+    try:
+        os.remove(filepath)
+        print(f"Imagen eliminada: {filepath}")
+        return jsonify({'message': f'Imagen {filename} eliminada correctamente'}), 200
+    except Exception as e:
+        print(f"Error al eliminar la imagen: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':

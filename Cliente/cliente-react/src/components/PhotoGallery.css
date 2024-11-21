@@ -26,6 +26,19 @@
     height: auto;
     border: 2px solid #000;
     border-radius: 5px;
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.gallery-image:hover {
+    transform: scale(1.1); /* Ampliar ligeramente al pasar el ratón */
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3); /* Agregar sombra al pasar el ratón */
+}
+
+.gallery-image.selected {
+    border: 3px solid #007bff; /* Cambiar color del borde cuando esté seleccionada */
+    box-shadow: 0px 4px 10px rgba(0, 123, 255, 0.5); /* Sombra azul para resaltar selección */
+    transform: scale(1.1); /* Ligeramente más grande al estar seleccionada */
 }
 
 .slideshow {
@@ -43,11 +56,14 @@
 }
 
 .slideshow-image.fullscreen {
-    max-width: 100vw; /* Ancho máximo limitado al tamaño de la ventana */
-    max-height: 100vh; /* Altura máxima limitada al tamaño de la ventana */
-    object-fit: contain; /* Asegura que la imagen mantenga su proporción */
-    border: none; /* Opcional: Elimina bordes en pantalla completa */
-    box-shadow: none; /* Opcional: Elimina sombras en pantalla completa */
+    width: 100vw; /* Ajustar el ancho al 100% del viewport */
+    height: 100vh; /* Ajustar la altura al 100% del viewport */
+    object-fit: contain; /* Mantener la proporción de la imagen dentro de la pantalla */
+    border: none; /* Eliminar bordes en pantalla completa */
+    box-shadow: none; /* Eliminar sombras en pantalla completa */
+    margin: 0; /* Eliminar cualquier margen que pueda desalinear la imagen */
+    padding: 0; /* Eliminar cualquier padding */
+    display: block; /* Asegurar que sea un bloque */
 }
 
 .slideshow-controls {
@@ -75,4 +91,12 @@
 .slideshow-controls button:disabled {
     background-color: #bab9c7;
     cursor: not-allowed;
+}
+
+.filters {
+    margin-top: 20px;
+}
+
+.filters label {
+    margin-right: 10px;
 }

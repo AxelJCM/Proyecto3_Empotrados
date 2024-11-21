@@ -29,12 +29,9 @@ function PhotoGallery({ serverUrl }) {
             }
         };
 
-        // Llamar a fetchPhotos inicialmente y luego cada 5 segundos
         fetchPhotos();
-        const interval = setInterval(fetchPhotos, 5000);
-
-        // Limpiar el intervalo al desmontar el componente
-        return () => clearInterval(interval);
+        const interval = setInterval(fetchPhotos, 5000); // Actualizar cada 5 segundos
+        return () => clearInterval(interval); // Limpiar intervalo al desmontar
     }, [serverUrl]);
 
     // Manejar carga de imágenes desde el cliente
@@ -47,9 +44,9 @@ function PhotoGallery({ serverUrl }) {
         setPreviewPhotos(previews);
     };
 
-    // Seleccionar una foto para aplicar filtros
+    // Seleccionar una foto
     const handlePhotoClick = (photo) => {
-        setSelectedPhoto(photo);
+        setSelectedPhoto(photo === selectedPhoto ? null : photo);
     };
 
     // Manejar la selección de filtros
@@ -79,7 +76,7 @@ function PhotoGallery({ serverUrl }) {
             // Imagen desde el servidor
             const response = await fetch(selectedPhoto);
             const blob = await response.blob();
-            formData.append('image', blob, 'uploaded_image.jpg');
+            formData.append('image', blob, 'uploaded_image.bmp');
         }
 
         formData.append('filters', filterString); // Añadir filtros al FormData
@@ -91,14 +88,17 @@ function PhotoGallery({ serverUrl }) {
             });
 
             if (response.ok) {
-                const filteredBlob = await response.blob();
-                const filteredURL = URL.createObjectURL(filteredBlob);
-                setFilteredPhoto(filteredURL); // Mostrar la imagen procesada
+                const result = await response.json();
+                const processedImageUrl = `${serverUrl}/images/${result.filename}`;
+                setFilteredPhoto(processedImageUrl); // Mostrar la imagen procesada
+                alert('Filtros aplicados correctamente.');
             } else {
-                console.error('Error al aplicar filtros en el servidor');
+                alert('Error al aplicar filtros.');
+                console.error('Error en el servidor al aplicar filtros.');
             }
         } catch (error) {
-            console.error('Error al conectar con el servidor:', error);
+            alert('Error al conectar con el servidor.');
+            console.error('Error al aplicar filtros:', error);
         }
     };
 
@@ -145,107 +145,84 @@ function PhotoGallery({ serverUrl }) {
         }
     };
 
+    // Manejar eliminación de imagen
+    const handleDeletePhoto = async () => {
+        if (!selectedPhoto) {
+            alert('Selecciona una imagen para eliminar.');
+            return;
+        }
+
+        const photoName = selectedPhoto.split('/').pop(); // Extraer el nombre del archivo
+        try {
+            const response = await fetch(`${serverUrl}/delete-image/${photoName}`, {
+                method: 'DELETE',
+            });
+
+            if (response.ok) {
+                alert('Imagen eliminada correctamente.');
+                setPhotos(photos.filter((photo) => photo !== selectedPhoto)); // Actualizar la lista local
+                setSelectedPhoto(null);
+            } else {
+                alert('Error al eliminar la imagen.');
+            }
+        } catch (error) {
+            console.error('Error al conectar con el servidor:', error);
+        }
+    };
+
     return (
         <div className="photo-gallery-container">
-            {/* Panel de galería */}
             <div className="gallery-panel">
                 <h2>Galería de Imágenes</h2>
-
-                {/* Input para cargar imágenes */}
                 <input type="file" multiple accept="image/*" onChange={handleUpload} />
-
-                {/* Mostrar previews locales */}
-                {previewPhotos.length > 0 && (
-                    <div className="preview-gallery">
-                        <h3>Previsualización</h3>
-                        {previewPhotos.map((photo, index) => (
-                            <img
-                                key={index}
-                                src={photo.url}
-                                alt={`Preview ${index}`}
-                                onClick={() => setSelectedPhoto(photo)}
-                                className={selectedPhoto === photo ? 'selected' : ''}
-                            />
-                        ))}
-                    </div>
-                )}
-
-                {/* Seleccionar filtros */}
+                <div className="gallery-actions">
+                    <button onClick={handleDeletePhoto} disabled={!selectedPhoto}>
+                        Eliminar Imagen Seleccionada
+                    </button>
+                </div>
                 <div className="filters">
                     <h3>Seleccionar Filtros</h3>
-                    <div>
-                        <label>
-                            <input type="checkbox" value="-b" onChange={handleFilterChange} />
-                            Blur
-                        </label>
-                        <label>
-                            <input type="checkbox" value="-g" onChange={handleFilterChange} />
-                            Grayscale
-                        </label>
-                        <label>
-                            <input type="checkbox" value="-r" onChange={handleFilterChange} />
-                            Reflect
-                        </label>
-                        <label>
-                            <input type="checkbox" value="-s" onChange={handleFilterChange} />
-                            Sepia
-                        </label>
-                        <label>
-                            <input type="checkbox" value="-e" onChange={handleFilterChange} />
-                            Edges
-                        </label>
-                        <label>
-                            <input type="checkbox" value="-p" onChange={handleFilterChange} />
-                            Pixelate
-                        </label>
-                        <label>
-                            <input type="checkbox" value="-z" onChange={handleFilterChange} />
-                            Sharpen
-                        </label>
-                    </div>
-                    <button onClick={handleApplyFilters}>Aplicar Filtros</button>
+                    <label><input type="checkbox" value="-b" onChange={handleFilterChange} /> Blur</label>
+                    <label><input type="checkbox" value="-g" onChange={handleFilterChange} /> Grayscale</label>
+                    <label><input type="checkbox" value="-r" onChange={handleFilterChange} /> Reflect</label>
+                    <label><input type="checkbox" value="-s" onChange={handleFilterChange} /> Sepia</label>
+                    <label><input type="checkbox" value="-e" onChange={handleFilterChange} /> Edges</label>
+                    <label><input type="checkbox" value="-p" onChange={handleFilterChange} /> Pixelate</label>
+                    <label><input type="checkbox" value="-z" onChange={handleFilterChange} /> Sharpen</label>
+                    <button onClick={handleApplyFilters} disabled={!selectedPhoto || filters.length === 0}>
+                        Aplicar Filtros
+                    </button>
                 </div>
-
-                {/* Galería de imágenes procesadas */}
                 <div className="gallery">
                     {photos.map((photo, index) => (
                         <img
                             key={index}
                             src={photo}
                             alt={`Imagen ${index}`}
-                            className="gallery-image"
+                            className={`gallery-image ${photo === selectedPhoto ? 'selected' : ''}`}
+                            onClick={() => handlePhotoClick(photo)}
                         />
                     ))}
                 </div>
             </div>
 
-            {/* Panel de slideshow */}
             <div className="slideshow-panel" ref={slideshowRef}>
                 <h2>Slideshow</h2>
-                <div className="slideshow-controls">
-                    <button onClick={startSlideshow} disabled={slideshowActive}>Iniciar Slideshow</button>
-                    <button onClick={stopSlideshow} disabled={!slideshowActive}>Detener Slideshow</button>
-                    <button onClick={toggleFullscreen}>Pantalla Completa</button>
-                </div>
-
+                <button onClick={startSlideshow} disabled={slideshowActive}>
+                    Iniciar Slideshow
+                </button>
+                <button onClick={stopSlideshow} disabled={!slideshowActive}>
+                    Detener Slideshow
+                </button>
+                <button onClick={toggleFullscreen}>Pantalla Completa</button>
                 {slideshowActive && photos.length > 0 && (
-                    <div className="slideshow">
-                        <img
-                            src={photos[currentSlide]}
-                            alt={`Slideshow ${currentSlide}`}
-                            className={`slideshow-image ${isFullscreen ? 'fullscreen' : ''}`}
-                        />
-                    </div>
+                    <img
+                        src={photos[currentSlide]}
+                        alt={`Slide ${currentSlide}`}
+                        className={`slideshow-image ${isFullscreen ? 'fullscreen' : ''}`}
+                    />
                 )}
             </div>
-
-            {/* Imagen procesada */}
-            {filteredPhoto && (
-                <div className="output">
-                    <h3>Imagen Procesada</h3>
-                    <img src={filteredPhoto} alt="Filtered" />
-                </div>
-            )}
         </div>
     );
 }
