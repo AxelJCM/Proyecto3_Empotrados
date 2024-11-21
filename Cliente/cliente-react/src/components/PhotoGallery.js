@@ -42,6 +42,7 @@ function PhotoGallery({ serverUrl }) {
             url: URL.createObjectURL(file),
         }));
         setPreviewPhotos(previews);
+        setSelectedPhoto(previews[0]); // Seleccionar automáticamente la primera imagen cargada
     };
 
     // Seleccionar una foto
@@ -74,9 +75,15 @@ function PhotoGallery({ serverUrl }) {
             formData.append('image', selectedPhoto.file);
         } else {
             // Imagen desde el servidor
-            const response = await fetch(selectedPhoto);
-            const blob = await response.blob();
-            formData.append('image', blob, 'uploaded_image.bmp');
+            try {
+                const response = await fetch(selectedPhoto);
+                const blob = await response.blob();
+                formData.append('image', blob, 'uploaded_image.bmp');
+            } catch (error) {
+                alert('Error al obtener la imagen desde el servidor.');
+                console.error('Error:', error);
+                return;
+            }
         }
 
         formData.append('filters', filterString); // Añadir filtros al FormData
